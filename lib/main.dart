@@ -130,10 +130,13 @@ class MainMenuScreen extends StatelessWidget {
                           SizedBox(
                             height: Responsive.height(context) * 0.24,
                           ),
+
                           NeonMafiaTitle(
                             fontSize: Responsive.mainTitleSize(context),
                           ),
+
                           const SizedBox(height: 12),
+
                           Text(
                             'Work in progress',
                             textAlign: TextAlign.center,
@@ -156,9 +159,11 @@ class MainMenuScreen extends StatelessWidget {
                               ],
                             ),
                           ),
+
                           SizedBox(
                             height: Responsive.isSmall(context) ? 48 : 64,
                           ),
+
                           MafiaButton(
                             text: 'Hostuj',
                             icon: Icons.groups_rounded,
@@ -171,7 +176,9 @@ class MainMenuScreen extends StatelessWidget {
                               );
                             },
                           ),
+
                           const SizedBox(height: 16),
+
                           MafiaButton(
                             text: 'Dołącz do gry',
                             icon: Icons.login_rounded,
@@ -184,6 +191,7 @@ class MainMenuScreen extends StatelessWidget {
                               );
                             },
                           ),
+
                           SizedBox(
                             height: Responsive.height(context) * 0.14,
                           ),
@@ -388,9 +396,11 @@ class _HostGameScreenState extends State<HostGameScreen> {
                             showIcon: true,
                             largeIcon: true,
                           ),
+
                           SizedBox(
                             height: Responsive.isSmall(context) ? 20 : 28,
                           ),
+
                           MafiaPanel(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,14 +410,18 @@ class _HostGameScreenState extends State<HostGameScreen> {
                                   icon: Icons.tune_rounded,
                                   showIcon: false,
                                 ),
+
                                 const SizedBox(height: 20),
+
                                 MafiaTextField(
                                   controller: hostNameController,
                                   label: 'Nazwa hosta',
                                   hint: 'np. Wiktor',
                                   mutedText: false,
                                 ),
+
                                 const SizedBox(height: 18),
+
                                 ConstrainedBox(
                                   constraints: const BoxConstraints(
                                     maxHeight: 245,
@@ -435,9 +449,11 @@ class _HostGameScreenState extends State<HostGameScreen> {
                               ],
                             ),
                           ),
+
                           SizedBox(
                             height: Responsive.isSmall(context) ? 18 : 24,
                           ),
+
                           MafiaPanel(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,7 +463,9 @@ class _HostGameScreenState extends State<HostGameScreen> {
                                   icon: Icons.analytics_outlined,
                                   showIcon: false,
                                 ),
+
                                 const SizedBox(height: 18),
+
                                 ConstrainedBox(
                                   constraints: const BoxConstraints(
                                     maxHeight: 205,
@@ -467,9 +485,11 @@ class _HostGameScreenState extends State<HostGameScreen> {
                               ],
                             ),
                           ),
+
                           SizedBox(
                             height: Responsive.isSmall(context) ? 22 : 30,
                           ),
+
                           MafiaButton(
                             text: 'Utwórz',
                             icon: Icons.arrow_forward_rounded,
@@ -590,9 +610,11 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                             showIcon: true,
                             largeIcon: true,
                           ),
+
                           SizedBox(
                             height: Responsive.isSmall(context) ? 34 : 52,
                           ),
+
                           Text(
                             'Wejdź do miasta',
                             textAlign: TextAlign.center,
@@ -615,7 +637,9 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                               ],
                             ),
                           ),
+
                           const SizedBox(height: 10),
+
                           Text(
                             'Dołącz do pokoju gry',
                             textAlign: TextAlign.center,
@@ -626,9 +650,11 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                               letterSpacing: 0.8,
                             ),
                           ),
+
                           SizedBox(
                             height: Responsive.isSmall(context) ? 34 : 48,
                           ),
+
                           MafiaPanel(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -638,14 +664,18 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                                   icon: Icons.person_outline_rounded,
                                   showIcon: false,
                                 ),
+
                                 const SizedBox(height: 22),
+
                                 MafiaTextField(
                                   controller: playerNameController,
                                   label: 'Nazwa gracza',
                                   hint: 'np. Wiktor',
                                   mutedText: true,
                                 ),
+
                                 const SizedBox(height: 18),
+
                                 MafiaTextField(
                                   controller: roomCodeController,
                                   label: 'Kod pokoju',
@@ -654,6 +684,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                                       TextCapitalization.characters,
                                   mutedText: true,
                                 ),
+
                                 if (errorMessage != null) ...[
                                   const SizedBox(height: 16),
                                   Text(
@@ -665,16 +696,20 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                                     ),
                                   ),
                                 ],
+
                                 const SizedBox(height: 20),
+
                                 const HelpHint(
                                   text: 'Kod pokoju otrzymasz od hosta.',
                                 ),
                               ],
                             ),
                           ),
+
                           SizedBox(
                             height: Responsive.isSmall(context) ? 28 : 40,
                           ),
+
                           MafiaButton(
                             text: 'Dołącz',
                             icon: Icons.arrow_forward_rounded,
@@ -769,9 +804,11 @@ class LobbyScreen extends StatelessWidget {
                             showTitle: true,
                             showIcon: false,
                           ),
+
                           SizedBox(
                             height: Responsive.isSmall(context) ? 18 : 28,
                           ),
+
                           MafiaPanel(
                             child: Column(
                               children: [
@@ -780,7 +817,9 @@ class LobbyScreen extends StatelessWidget {
                                   icon: Icons.key_rounded,
                                   showIcon: false,
                                 ),
+
                                 const SizedBox(height: 14),
+
                                 SelectableText(
                                   roomCode,
                                   textAlign: TextAlign.center,
@@ -803,7 +842,9 @@ class LobbyScreen extends StatelessWidget {
                                     ],
                                   ),
                                 ),
+
                                 const SizedBox(height: 10),
+
                                 Text(
                                   isHost
                                       ? 'Przekaż ten kod graczom.'
@@ -819,9 +860,11 @@ class LobbyScreen extends StatelessWidget {
                               ],
                             ),
                           ),
+
                           SizedBox(
                             height: Responsive.isSmall(context) ? 18 : 24,
                           ),
+
                           MafiaPanel(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -847,7 +890,9 @@ class LobbyScreen extends StatelessWidget {
                                     ),
                                   ],
                                 ),
+
                                 const SizedBox(height: 16),
+
                                 ...players.map<Widget>((player) {
                                   final name = player['name'] as String;
                                   final playerIsHost =
@@ -858,6 +903,7 @@ class LobbyScreen extends StatelessWidget {
                                     isHost: playerIsHost,
                                   );
                                 }),
+
                                 if (players.length < maxPlayers)
                                   EmptyPlayerSlot(
                                     slotNumber: players.length + 1,
@@ -865,9 +911,11 @@ class LobbyScreen extends StatelessWidget {
                               ],
                             ),
                           ),
+
                           SizedBox(
                             height: Responsive.isSmall(context) ? 18 : 24,
                           ),
+
                           MafiaPanel(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -877,7 +925,9 @@ class LobbyScreen extends StatelessWidget {
                                   icon: Icons.analytics_outlined,
                                   showIcon: false,
                                 ),
+
                                 const SizedBox(height: 18),
+
                                 ConstrainedBox(
                                   constraints: const BoxConstraints(
                                     maxHeight: 190,
@@ -908,9 +958,11 @@ class LobbyScreen extends StatelessWidget {
                               ],
                             ),
                           ),
+
                           SizedBox(
                             height: Responsive.isSmall(context) ? 26 : 36,
                           ),
+
                           if (isHost)
                             MafiaButton(
                               text: 'Start gry',
@@ -1311,8 +1363,10 @@ class CounterSetting extends StatelessWidget {
   Widget build(BuildContext context) {
     final small = Responsive.isSmall(context);
 
-    return SizedBox(
-      minHeight: small ? 48 : 54,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minHeight: small ? 48 : 54,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
