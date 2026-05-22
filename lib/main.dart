@@ -1376,3 +1376,140 @@ class MafiaButton extends StatelessWidget {
     );
   }
 }
+class LobbyScreen extends StatelessWidget {
+  final String roomCode;
+  final String playerName;
+  final bool isHost;
+
+  const LobbyScreen({
+    super.key,
+    required this.roomCode,
+    required this.playerName,
+    required this.isHost,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final players = [
+      {'name': playerName, 'isHost': isHost},
+      {'name': 'Gracz2', 'isHost': false},
+      {'name': 'Gracz3', 'isHost': false},
+    ];
+
+    return Scaffold(
+      body: MafiaBackground(
+        overlayAlpha: 0.5,
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                children: [
+                  MafiaTopBar(
+                    title: "LOBBY",
+                    onBack: () => Navigator.pop(context),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Text(
+                    "Kod pokoju",
+                    style: GoogleFonts.fondamento(
+                      color: Colors.white70,
+                      fontSize: 18,
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  Text(
+                    roomCode,
+                    style: GoogleFonts.rubikDistressed(
+                      fontSize: 40,
+                      color: AppColors.neonWhite,
+                      letterSpacing: 4,
+                      shadows: const [
+                        Shadow(color: Colors.white, blurRadius: 8),
+                        Shadow(
+                          color: Colors.black,
+                          blurRadius: 10,
+                          offset: Offset(2, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  MafiaPanel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Gracze",
+                          style: GoogleFonts.cinzel(
+                            color: AppColors.neonWhite,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        ...players.map((p) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    p['name'] as String,
+                                    style: GoogleFonts.cinzel(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ),
+                                if (p['isHost'] == true)
+                                  const Text(
+                                    "HOST",
+                                    style: TextStyle(
+                                      color: Colors.greenAccent,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  if (isHost)
+                    MafiaButton(
+                      text: "START GRY",
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Tu będzie start gry"),
+                          ),
+                        );
+                      },
+                    )
+                  else
+                    const Text(
+                      "Czekaj na start gry...",
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
