@@ -429,27 +429,29 @@ class _HostGameScreenState extends State<HostGameScreen> {
 
                                 const SizedBox(height: 24),
 
-                                ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxHeight: 285,
-                                  ),
-                                  child: SingleChildScrollView(
-                                    child: Column(
-                                      children: roleSettings.map<Widget>((role) {
-                                        return CounterSetting(
-                                          title: role.name,
-                                          value: role.value,
-                                          min: role.min,
-                                          max: role.max,
-                                          onChanged: role.onChanged,
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                               ConstrainedBox(
+  constraints: const BoxConstraints(
+    maxHeight: 245,
+  ),
+  child: ListView.separated(
+    shrinkWrap: true,
+    padding: EdgeInsets.zero,
+    physics: const ClampingScrollPhysics(),
+    itemCount: roleSettings.length,
+    separatorBuilder: (_, __) => const SizedBox(height: 8),
+    itemBuilder: (context, index) {
+      final role = roleSettings[index];
+
+      return CounterSetting(
+        title: role.name,
+        value: role.value,
+        min: role.min,
+        max: role.max,
+        onChanged: role.onChanged,
+      );
+    },
+  ),
+),
 
                           SizedBox(
                             height: Responsive.isSmall(context) ? 18 : 24,
