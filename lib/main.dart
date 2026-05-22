@@ -1022,6 +1022,7 @@ class MafiaBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
+        // Tło zakotwiczone od dołu — budynki zostają przy dolnej krawędzi.
         Positioned.fill(
           child: Image.asset(
             backgroundPath,
@@ -1029,6 +1030,11 @@ class MafiaBackground extends StatelessWidget {
             alignment: Alignment.bottomCenter,
           ),
         ),
+
+        // Gradient idzie od dołu ku górze:
+        // dół ciemniejszy dla czytelności UI,
+        // środek czerwony,
+        // góra bardziej przyciemniona.
         Positioned.fill(
           child: Container(
             decoration: BoxDecoration(
@@ -1036,14 +1042,14 @@ class MafiaBackground extends StatelessWidget {
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.96),
-                  Colors.black.withValues(alpha: 0.78),
-                  AppColors.deepRed.withValues(alpha: 0.78),
-                  AppColors.deepRed.withValues(alpha: 0.92),
+                  Colors.black.withValues(alpha: 0.88),
+                  AppColors.deepRed.withValues(alpha: 0.62),
+                  AppColors.deepRed.withValues(alpha: 0.84),
+                  Colors.black.withValues(alpha: 0.42),
                 ],
                 stops: const [
                   0.00,
-                  0.36,
+                  0.34,
                   0.72,
                   1.00,
                 ],
@@ -1051,6 +1057,7 @@ class MafiaBackground extends StatelessWidget {
             ),
           ),
         ),
+
         Positioned.fill(
           child: child,
         ),
