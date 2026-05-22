@@ -263,113 +263,19 @@ class _HostGameScreenState extends State<HostGameScreen> {
 
     final roomCode = generateRoomCode();
 
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF111111),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-            side: const BorderSide(
-              color: AppColors.neonWhite,
-              width: 1.4,
-            ),
-          ),
-          title: Text(
-            'Pokój utworzony',
-            style: GoogleFonts.cinzel(
-              color: AppColors.neonWhite,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-              shadows: const [
-                Shadow(
-                  color: Colors.white,
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Host: $hostName',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.fondamento(
-                  color: Colors.white,
-                  fontSize: 18,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Kod pokoju:',
-                style: GoogleFonts.cinzel(
-                  color: Colors.white70,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              SelectableText(
-                roomCode,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.rubikDistressed(
-                  color: AppColors.neonWhite,
-                  fontSize: 42,
-                  letterSpacing: 4,
-                  shadows: const [
-                    Shadow(
-                      color: Colors.white,
-                      blurRadius: 8,
-                    ),
-                    Shadow(
-                      color: Colors.black,
-                      blurRadius: 10,
-                      offset: Offset(2, 2),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'Na razie jest to lokalny ekran testowy. Później podepniemy prawdziwe lobby online.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.fondamento(
-                  color: Colors.white70,
-                  fontSize: 15,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'OK',
-                style: GoogleFonts.cinzel(
-                  color: AppColors.neonWhite,
-                  fontWeight: FontWeight.bold,
-               final roomCode = generateRoomCode();
-final hostName = hostNameController.text.trim().isEmpty
-    ? "Host"
-    : hostNameController.text.trim();
-
-Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (_) => LobbyScreen(
-      roomCode: roomCode,
-      playerName: hostName,
-      isHost: true,
-    ),
-  ),
-);
-              ),
-            ),
-          ],
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LobbyScreen(
+          roomCode: roomCode,
+          playerName: hostName,
+          isHost: true,
+          maxPlayers: players,
+          mafiaCount: mafia,
+          detectiveCount: detective,
+          doctorCount: doctor,
+        ),
+      ),
     );
   }
 
@@ -585,64 +491,19 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
       errorMessage = null;
     });
 
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF111111),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-            side: const BorderSide(
-              color: AppColors.neonWhite,
-              width: 1.4,
-            ),
-          ),
-          title: Text(
-            'Dołączanie',
-            style: GoogleFonts.cinzel(
-              color: AppColors.neonWhite,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-              shadows: const [
-                Shadow(
-                  color: Colors.white,
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-          ),
-          content: Text(
-            'Gracz "$playerName" próbuje dołączyć do pokoju "$roomCode".\n\nNa razie to ekran testowy. Później podepniemy prawdziwe pokoje online.',
-            style: GoogleFonts.fondamento(
-              color: Colors.white,
-              fontSize: 17,
-              height: 1.4,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'OK',
-                style: GoogleFonts.cinzel(
-                  color: AppColors.neonWhite,
-                  fontWeight: FontWeight.bold,
-                  Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (_) => LobbyScreen(
-      roomCode: roomCode,
-      playerName: playerName,
-      isHost: false,
-    ),
-  ),
-);
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LobbyScreen(
+          roomCode: roomCode,
+          playerName: playerName,
+          isHost: false,
+          maxPlayers: 6,
+          mafiaCount: 1,
+          detectiveCount: 1,
+          doctorCount: 1,
+        ),
+      ),
     );
   }
 
@@ -768,7 +629,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
 
                                 const SizedBox(height: 20),
 
-                                InfoBox(
+                                const InfoBox(
                                   text: 'Kod pokoju otrzymasz od hosta gry.',
                                 ),
                               ],
@@ -792,6 +653,433 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// LOBBY SCREEN
+// -----------------------------------------------------------------------------
+
+class LobbyScreen extends StatelessWidget {
+  const LobbyScreen({
+    super.key,
+    required this.roomCode,
+    required this.playerName,
+    required this.isHost,
+    required this.maxPlayers,
+    required this.mafiaCount,
+    required this.detectiveCount,
+    required this.doctorCount,
+  });
+
+  final String roomCode;
+  final String playerName;
+  final bool isHost;
+  final int maxPlayers;
+  final int mafiaCount;
+  final int detectiveCount;
+  final int doctorCount;
+
+  int get citizensCount {
+    final result = maxPlayers - mafiaCount - detectiveCount - doctorCount;
+    return result < 0 ? 0 : result;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final players = <Map<String, Object>>[
+      {
+        'name': playerName,
+        'isHost': isHost,
+      },
+      {
+        'name': 'Gracz 2',
+        'isHost': false,
+      },
+      {
+        'name': 'Gracz 3',
+        'isHost': false,
+      },
+    ];
+
+    return Scaffold(
+      body: MafiaBackground(
+        overlayAlpha: 0.50,
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: Responsive.horizontalPadding(context),
+                  vertical: 18,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 36,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: Responsive.contentMaxWidth(context),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          MafiaTopBar(
+                            title: 'LOBBY',
+                            onBack: () => Navigator.pop(context),
+                          ),
+
+                          SizedBox(
+                            height: Responsive.isSmall(context) ? 18 : 28,
+                          ),
+
+                          NeonMafiaTitle(
+                            fontSize: Responsive.screenTitleSize(context),
+                          ),
+
+                          const SizedBox(height: 18),
+
+                          MafiaPanel(
+                            child: Column(
+                              children: [
+                                Text(
+                                  'Kod pokoju',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.cinzel(
+                                    color: AppColors.neonWhite,
+                                    fontSize:
+                                        Responsive.isSmall(context) ? 20 : 22,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 2,
+                                    shadows: const [
+                                      Shadow(
+                                        color: Colors.white,
+                                        blurRadius: 7,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 10),
+
+                                SelectableText(
+                                  roomCode,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.rubikDistressed(
+                                    color: AppColors.neonWhite,
+                                    fontSize:
+                                        Responsive.isSmall(context) ? 38 : 48,
+                                    letterSpacing: 6,
+                                    shadows: const [
+                                      Shadow(
+                                        color: Colors.white,
+                                        blurRadius: 10,
+                                      ),
+                                      Shadow(
+                                        color: Colors.black,
+                                        blurRadius: 12,
+                                        offset: Offset(3, 3),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 14),
+
+                                Text(
+                                  isHost
+                                      ? 'Przekaż ten kod graczom.'
+                                      : 'Czekaj, aż host rozpocznie grę.',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.fondamento(
+                                    color: Colors.white70,
+                                    fontSize:
+                                        Responsive.isSmall(context) ? 16 : 17,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(
+                            height: Responsive.isSmall(context) ? 18 : 22,
+                          ),
+
+                          MafiaPanel(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Gracze',
+                                        style: GoogleFonts.cinzel(
+                                          color: AppColors.neonWhite,
+                                          fontSize:
+                                              Responsive.isSmall(context)
+                                                  ? 20
+                                                  : 24,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.5,
+                                          shadows: const [
+                                            Shadow(
+                                              color: Colors.white,
+                                              blurRadius: 7,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${players.length}/$maxPlayers',
+                                      style: GoogleFonts.rubikDistressed(
+                                        color: AppColors.neonWhite,
+                                        fontSize:
+                                            Responsive.isSmall(context) ? 22 : 26,
+                                        shadows: const [
+                                          Shadow(
+                                            color: Colors.white,
+                                            blurRadius: 6,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 16),
+
+                                ...players.map<Widget>((player) {
+                                  final name = player['name'] as String;
+                                  final playerIsHost =
+                                      player['isHost'] as bool;
+
+                                  return LobbyPlayerTile(
+                                    name: name,
+                                    isHost: playerIsHost,
+                                  );
+                                }).toList(),
+
+                                if (players.length < maxPlayers)
+                                  EmptyPlayerSlot(
+                                    slotNumber: players.length + 1,
+                                  ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(
+                            height: Responsive.isSmall(context) ? 18 : 22,
+                          ),
+
+                          MafiaPanel(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Konfiguracja gry',
+                                  style: GoogleFonts.cinzel(
+                                    color: AppColors.neonWhite,
+                                    fontSize:
+                                        Responsive.isSmall(context) ? 20 : 22,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.3,
+                                    shadows: const [
+                                      Shadow(
+                                        color: Colors.white,
+                                        blurRadius: 7,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 14),
+
+                                SummaryText(
+                                  label: 'Mafia',
+                                  value: mafiaCount.toString(),
+                                ),
+                                SummaryText(
+                                  label: 'Detektyw',
+                                  value: detectiveCount.toString(),
+                                ),
+                                SummaryText(
+                                  label: 'Lekarz',
+                                  value: doctorCount.toString(),
+                                ),
+                                SummaryText(
+                                  label: 'Mieszkańcy',
+                                  value: citizensCount.toString(),
+                                ),
+                                SummaryText(
+                                  label: 'Status lobby',
+                                  value: isHost ? 'Host' : 'Gracz',
+                                  valueColor: isHost
+                                      ? Colors.greenAccent
+                                      : Colors.orangeAccent,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(
+                            height: Responsive.isSmall(context) ? 20 : 30,
+                          ),
+
+                          if (isHost)
+                            MafiaButton(
+                              text: 'START GRY',
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Tutaj później dodamy start gry i losowanie ról.',
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          else
+                            Text(
+                              'Czekaj na start gry...',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.fondamento(
+                                color: Colors.white70,
+                                fontSize:
+                                    Responsive.isSmall(context) ? 16 : 18,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class LobbyPlayerTile extends StatelessWidget {
+  const LobbyPlayerTile({
+    super.key,
+    required this.name,
+    required this.isHost,
+  });
+
+  final String name;
+  final bool isHost;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: Responsive.isSmall(context) ? 12 : 14,
+        vertical: Responsive.isSmall(context) ? 10 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isHost
+              ? AppColors.neonWhite.withOpacity(0.75)
+              : AppColors.neonWhite.withOpacity(0.35),
+        ),
+        boxShadow: [
+          if (isHost)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.08),
+              blurRadius: 16,
+            ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isHost ? Icons.local_police_outlined : Icons.person_outline,
+            color: AppColors.neonWhite,
+          ),
+
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.cinzel(
+                color: Colors.white,
+                fontSize: Responsive.isSmall(context) ? 15 : 17,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+
+          if (isHost)
+            Text(
+              'HOST',
+              style: GoogleFonts.cinzel(
+                color: Colors.greenAccent,
+                fontSize: Responsive.isSmall(context) ? 13 : 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class EmptyPlayerSlot extends StatelessWidget {
+  const EmptyPlayerSlot({
+    super.key,
+    required this.slotNumber,
+  });
+
+  final int slotNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: Responsive.isSmall(context) ? 12 : 14,
+        vertical: Responsive.isSmall(context) ? 10 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.32),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.neonWhite.withOpacity(0.22),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.person_add_alt_outlined,
+            color: Colors.white.withOpacity(0.45),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Wolne miejsce $slotNumber',
+            style: GoogleFonts.fondamento(
+              color: Colors.white54,
+              fontSize: Responsive.isSmall(context) ? 15 : 17,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1393,143 +1681,6 @@ class MafiaButton extends StatelessWidget {
                   offset: Offset(2, 2),
                 ),
               ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-class LobbyScreen extends StatelessWidget {
-  final String roomCode;
-  final String playerName;
-  final bool isHost;
-
-  const LobbyScreen({
-    super.key,
-    required this.roomCode,
-    required this.playerName,
-    required this.isHost,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final players = [
-      {'name': playerName, 'isHost': isHost},
-      {'name': 'Gracz2', 'isHost': false},
-      {'name': 'Gracz3', 'isHost': false},
-    ];
-
-    return Scaffold(
-      body: MafiaBackground(
-        overlayAlpha: 0.5,
-        child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                children: [
-                  MafiaTopBar(
-                    title: "LOBBY",
-                    onBack: () => Navigator.pop(context),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  Text(
-                    "Kod pokoju",
-                    style: GoogleFonts.fondamento(
-                      color: Colors.white70,
-                      fontSize: 18,
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  Text(
-                    roomCode,
-                    style: GoogleFonts.rubikDistressed(
-                      fontSize: 40,
-                      color: AppColors.neonWhite,
-                      letterSpacing: 4,
-                      shadows: const [
-                        Shadow(color: Colors.white, blurRadius: 8),
-                        Shadow(
-                          color: Colors.black,
-                          blurRadius: 10,
-                          offset: Offset(2, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  MafiaPanel(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Gracze",
-                          style: GoogleFonts.cinzel(
-                            color: AppColors.neonWhite,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        ...players.map((p) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    p['name'] as String,
-                                    style: GoogleFonts.cinzel(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                ),
-                                if (p['isHost'] == true)
-                                  const Text(
-                                    "HOST",
-                                    style: TextStyle(
-                                      color: Colors.greenAccent,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                              ],
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  if (isHost)
-                    MafiaButton(
-                      text: "START GRY",
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Tu będzie start gry"),
-                          ),
-                        );
-                      },
-                    )
-                  else
-                    const Text(
-                      "Czekaj na start gry...",
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                ],
-              ),
             ),
           ),
         ),
