@@ -350,7 +350,21 @@ class _HostGameScreenState extends State<HostGameScreen> {
                 style: GoogleFonts.cinzel(
                   color: AppColors.neonWhite,
                   fontWeight: FontWeight.bold,
-                ),
+               final roomCode = generateRoomCode();
+final hostName = hostNameController.text.trim().isEmpty
+    ? "Host"
+    : hostNameController.text.trim();
+
+Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => LobbyScreen(
+      roomCode: roomCode,
+      playerName: hostName,
+      isHost: true,
+    ),
+  ),
+);
               ),
             ),
           ],
@@ -613,6 +627,16 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                 style: GoogleFonts.cinzel(
                   color: AppColors.neonWhite,
                   fontWeight: FontWeight.bold,
+                  Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => LobbyScreen(
+      roomCode: roomCode,
+      playerName: playerName,
+      isHost: false,
+    ),
+  ),
+);
                 ),
               ),
             ),
