@@ -9,12 +9,16 @@ void main() {
 
 class AppColors {
   static const Color neonWhite = Color(0xFFF8F4E8);
-  static const Color redDark = Color(0xFF7A0C0C);
-  static const Color redLight = Color(0xFFB82222);
+  static const Color frame = Color(0xCCF8F4E8);
+  static const Color deepRed = Color(0xFF4A0500);
+  static const Color fieldGrey = Color(0xFFB7B7B7);
 }
 
 class Responsive {
   static double width(BuildContext context) => MediaQuery.sizeOf(context).width;
+
+  static double height(BuildContext context) =>
+      MediaQuery.sizeOf(context).height;
 
   static bool isVerySmall(BuildContext context) => width(context) < 350;
 
@@ -32,21 +36,6 @@ class Responsive {
     return 24;
   }
 
-  static double mainTitleSize(BuildContext context) {
-    final w = width(context);
-    return clamp(w * 0.24, 62, 120);
-  }
-
-  static double screenTitleSize(BuildContext context) {
-    final w = width(context);
-    return clamp(w * 0.18, 48, 88);
-  }
-
-  static double buttonWidth(BuildContext context) {
-    final w = width(context);
-    return math.min(w - (horizontalPadding(context) * 2), 380);
-  }
-
   static double contentMaxWidth(BuildContext context) {
     final w = width(context);
 
@@ -54,6 +43,49 @@ class Responsive {
     if (w >= 600) return 500;
     return double.infinity;
   }
+
+  static double mainTitleSize(BuildContext context) {
+    final w = width(context);
+    return clamp(w * 0.23, 62, 112);
+  }
+
+  static double screenTitleSize(BuildContext context) {
+    final w = width(context);
+    return clamp(w * 0.15, 34, 58);
+  }
+
+  static double buttonWidth(BuildContext context) {
+    final w = width(context);
+    return math.min(w - (horizontalPadding(context) * 2), 380);
+  }
+}
+
+class RoleSetting {
+  const RoleSetting({
+    required this.name,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  final String name;
+  final int value;
+  final int min;
+  final int max;
+  final ValueChanged<int> onChanged;
+}
+
+class RoleSummary {
+  const RoleSummary({
+    required this.name,
+    required this.value,
+    this.valueColor,
+  });
+
+  final String name;
+  final String value;
+  final Color? valueColor;
 }
 
 class MyApp extends StatelessWidget {
@@ -66,12 +98,6 @@ class MyApp extends StatelessWidget {
       title: 'Mafia',
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,
-        iconButtonTheme: IconButtonThemeData(
-          style: IconButton.styleFrom(
-            foregroundColor: AppColors.neonWhite,
-            disabledForegroundColor: Colors.white24,
-          ),
-        ),
       ),
       home: const MainMenuScreen(),
     );
@@ -89,7 +115,6 @@ class MainMenuScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: MafiaBackground(
-        overlayAlpha: 0.45,
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -108,44 +133,47 @@ class MainMenuScreen extends StatelessWidget {
                         maxWidth: Responsive.contentMaxWidth(context),
                       ),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          SizedBox(
+                            height: Responsive.height(context) * 0.24,
+                          ),
+
                           NeonMafiaTitle(
                             fontSize: Responsive.mainTitleSize(context),
                           ),
 
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 12),
 
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              'Work in progress',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.fondamento(
-                                fontSize: Responsive.isSmall(context) ? 22 : 28,
-                                color: Colors.white,
-                                letterSpacing: 2,
-                                shadows: const [
-                                  Shadow(
-                                    color: Colors.white,
-                                    blurRadius: 5,
-                                  ),
-                                  Shadow(
-                                    color: Colors.black,
-                                    blurRadius: 10,
-                                    offset: Offset(2, 2),
-                                  ),
-                                ],
-                              ),
+                          Text(
+                            'Work in progress',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.cormorantGaramond(
+                              color: Colors.white,
+                              fontSize: Responsive.isSmall(context) ? 28 : 34,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.4,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.white,
+                                  blurRadius: 4,
+                                ),
+                                Shadow(
+                                  color: Colors.black,
+                                  blurRadius: 10,
+                                  offset: Offset(2, 2),
+                                ),
+                              ],
                             ),
                           ),
 
                           SizedBox(
-                            height: Responsive.isSmall(context) ? 32 : 48,
+                            height: Responsive.isSmall(context) ? 48 : 64,
                           ),
 
                           MafiaButton(
-                            text: 'HOSTUJ',
+                            text: 'Hostuj',
+                            icon: Icons.groups_rounded,
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -159,7 +187,8 @@ class MainMenuScreen extends StatelessWidget {
                           const SizedBox(height: 16),
 
                           MafiaButton(
-                            text: 'DOŁĄCZ DO GRY',
+                            text: 'Dołącz do gry',
+                            icon: Icons.login_rounded,
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -168,6 +197,10 @@ class MainMenuScreen extends StatelessWidget {
                                 ),
                               );
                             },
+                          ),
+
+                          SizedBox(
+                            height: Responsive.height(context) * 0.14,
                           ),
                         ],
                       ),
@@ -281,9 +314,67 @@ class _HostGameScreenState extends State<HostGameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final roleSettings = <RoleSetting>[
+      RoleSetting(
+        name: 'Liczba graczy',
+        value: players,
+        min: 4,
+        max: 20,
+        onChanged: setPlayers,
+      ),
+      RoleSetting(
+        name: 'Mafia',
+        value: mafia,
+        min: 1,
+        max: math.min(6, players),
+        onChanged: (value) {
+          setState(() {
+            mafia = value;
+          });
+        },
+      ),
+      RoleSetting(
+        name: 'Detektyw',
+        value: detective,
+        min: 0,
+        max: math.min(3, players),
+        onChanged: (value) {
+          setState(() {
+            detective = value;
+          });
+        },
+      ),
+      RoleSetting(
+        name: 'Lekarz',
+        value: doctor,
+        min: 0,
+        max: math.min(3, players),
+        onChanged: (value) {
+          setState(() {
+            doctor = value;
+          });
+        },
+      ),
+    ];
+
+    final summary = <RoleSummary>[
+      RoleSummary(name: 'Mafia', value: mafia.toString()),
+      RoleSummary(name: 'Detektyw', value: detective.toString()),
+      RoleSummary(name: 'Lekarz', value: doctor.toString()),
+      RoleSummary(name: 'Mieszkańcy', value: citizens.toString()),
+      RoleSummary(
+        name: 'Łącznie role specjalne',
+        value: specialRoles.toString(),
+      ),
+      RoleSummary(
+        name: 'Status',
+        value: isValid ? 'Konfiguracja poprawna' : 'Za dużo ról',
+        valueColor: isValid ? Colors.greenAccent : Colors.redAccent,
+      ),
+    ];
+
     return Scaffold(
       body: MafiaBackground(
-        overlayAlpha: 0.48,
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -302,126 +393,107 @@ class _HostGameScreenState extends State<HostGameScreen> {
                         maxWidth: Responsive.contentMaxWidth(context),
                       ),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          MafiaTopBar(
-                            title: 'HOSTOWANIE',
+                          ScreenHeader(
+                            title: 'Hostowanie',
+                            icon: Icons.groups_rounded,
                             onBack: () => Navigator.pop(context),
+                            showTitle: false,
+                            showIcon: true,
+                            largeIcon: true,
                           ),
 
                           SizedBox(
-                            height: Responsive.isSmall(context) ? 16 : 24,
+                            height: Responsive.isSmall(context) ? 20 : 28,
                           ),
 
                           MafiaPanel(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Ustawienia pokoju',
-                                  style: GoogleFonts.cinzel(
-                                    color: AppColors.neonWhite,
-                                    fontSize:
-                                        Responsive.isSmall(context) ? 20 : 24,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.5,
-                                    shadows: const [
-                                      Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 7,
-                                      ),
-                                    ],
-                                  ),
+                                SectionHeader(
+                                  title: 'Ustawienia pokoju',
+                                  icon: Icons.tune_rounded,
+                                  showIcon: false,
                                 ),
 
-                                const SizedBox(height: 18),
+                                const SizedBox(height: 20),
 
                                 MafiaTextField(
                                   controller: hostNameController,
                                   label: 'Nazwa hosta',
                                   hint: 'np. Wiktor',
+                                  mutedText: false,
                                 ),
 
-                                const SizedBox(height: 22),
+                                const SizedBox(height: 24),
 
-                                CounterSetting(
-                                  title: 'Liczba graczy',
-                                  value: players,
-                                  min: 4,
-                                  max: 20,
-                                  onChanged: setPlayers,
-                                ),
-
-                                CounterSetting(
-                                  title: 'Mafia',
-                                  value: mafia,
-                                  min: 1,
-                                  max: math.min(6, players),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      mafia = value;
-                                    });
-                                  },
-                                ),
-
-                                CounterSetting(
-                                  title: 'Detektyw',
-                                  value: detective,
-                                  min: 0,
-                                  max: math.min(3, players),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      detective = value;
-                                    });
-                                  },
-                                ),
-
-                                CounterSetting(
-                                  title: 'Lekarz',
-                                  value: doctor,
-                                  min: 0,
-                                  max: math.min(3, players),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      doctor = value;
-                                    });
-                                  },
-                                ),
-
-                                const SizedBox(height: 14),
-
-                                StatusPanel(
-                                  isValid: isValid,
-                                  children: [
-                                    SummaryText(
-                                      label: 'Mieszkańcy',
-                                      value: citizens.toString(),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxHeight: 285,
+                                  ),
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      children: roleSettings.map<Widget>((role) {
+                                        return CounterSetting(
+                                          title: role.name,
+                                          value: role.value,
+                                          min: role.min,
+                                          max: role.max,
+                                          onChanged: role.onChanged,
+                                        );
+                                      }).toList(),
                                     ),
-                                    SummaryText(
-                                      label: 'Łącznie role specjalne',
-                                      value: specialRoles.toString(),
-                                    ),
-                                    SummaryText(
-                                      label: 'Status',
-                                      value: isValid
-                                          ? 'Konfiguracja poprawna'
-                                          : 'Za dużo ról',
-                                      valueColor: isValid
-                                          ? Colors.greenAccent
-                                          : Colors.redAccent,
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
 
                           SizedBox(
-                            height: Responsive.isSmall(context) ? 18 : 26,
+                            height: Responsive.isSmall(context) ? 18 : 24,
+                          ),
+
+                          MafiaPanel(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SectionHeader(
+                                  title: 'Podsumowanie ról',
+                                  icon: Icons.analytics_outlined,
+                                  showIcon: false,
+                                ),
+
+                                const SizedBox(height: 18),
+
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxHeight: 205,
+                                  ),
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      children: summary.map<Widget>((item) {
+                                        return SummaryText(
+                                          label: item.name,
+                                          value: item.value,
+                                          valueColor: item.valueColor,
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(
+                            height: Responsive.isSmall(context) ? 22 : 30,
                           ),
 
                           MafiaButton(
-                            text: 'UTWÓRZ POKÓJ',
+                            text: 'Utwórz',
+                            icon: Icons.arrow_forward_rounded,
                             onPressed: createRoom,
                           ),
                         ],
@@ -511,7 +583,6 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: MafiaBackground(
-        overlayAlpha: 0.45,
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -530,79 +601,78 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                         maxWidth: Responsive.contentMaxWidth(context),
                       ),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          MafiaTopBar(
-                            title: 'DOŁĄCZ',
+                          ScreenHeader(
+                            title: 'Dołącz',
+                            icon: Icons.login_rounded,
                             onBack: () => Navigator.pop(context),
+                            showTitle: false,
+                            showIcon: true,
+                            largeIcon: true,
                           ),
 
                           SizedBox(
-                            height: Responsive.isSmall(context) ? 18 : 28,
+                            height: Responsive.isSmall(context) ? 34 : 52,
                           ),
 
-                          NeonMafiaTitle(
-                            fontSize: Responsive.screenTitleSize(context),
+                          Text(
+                            'Wejdź do miasta',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.cormorantGaramond(
+                              color: Colors.white,
+                              fontSize: Responsive.isSmall(context) ? 36 : 46,
+                              fontWeight: FontWeight.w700,
+                              fontStyle: FontStyle.italic,
+                              letterSpacing: 1.2,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.white,
+                                  blurRadius: 5,
+                                ),
+                                Shadow(
+                                  color: Colors.black,
+                                  blurRadius: 12,
+                                  offset: Offset(2, 2),
+                                ),
+                              ],
+                            ),
                           ),
 
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 10),
 
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              'Wejdź do miasta po kodzie pokoju',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.fondamento(
-                                fontSize:
-                                    Responsive.isSmall(context) ? 20 : 24,
-                                color: Colors.white,
-                                letterSpacing: 1.5,
-                                shadows: const [
-                                  Shadow(
-                                    color: Colors.white,
-                                    blurRadius: 5,
-                                  ),
-                                  Shadow(
-                                    color: Colors.black,
-                                    blurRadius: 10,
-                                    offset: Offset(2, 2),
-                                  ),
-                                ],
-                              ),
+                          Text(
+                            'Dołącz do pokoju gry',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.cormorantGaramond(
+                              color: Colors.white70,
+                              fontSize: Responsive.isSmall(context) ? 22 : 26,
+                              fontStyle: FontStyle.italic,
+                              letterSpacing: 0.8,
                             ),
                           ),
 
                           SizedBox(
-                            height: Responsive.isSmall(context) ? 22 : 34,
+                            height: Responsive.isSmall(context) ? 34 : 48,
                           ),
 
                           MafiaPanel(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Dane gracza',
-                                  style: GoogleFonts.cinzel(
-                                    color: AppColors.neonWhite,
-                                    fontSize:
-                                        Responsive.isSmall(context) ? 20 : 24,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.5,
-                                    shadows: const [
-                                      Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 7,
-                                      ),
-                                    ],
-                                  ),
+                                SectionHeader(
+                                  title: 'Dane gracza',
+                                  icon: Icons.person_outline_rounded,
+                                  showIcon: false,
                                 ),
 
-                                const SizedBox(height: 20),
+                                const SizedBox(height: 22),
 
                                 MafiaTextField(
                                   controller: playerNameController,
                                   label: 'Nazwa gracza',
                                   hint: 'np. Wiktor',
+                                  mutedText: true,
                                 ),
 
                                 const SizedBox(height: 18),
@@ -613,6 +683,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                                   hint: 'np. A7K9Q',
                                   textCapitalization:
                                       TextCapitalization.characters,
+                                  mutedText: true,
                                 ),
 
                                 if (errorMessage != null) ...[
@@ -629,19 +700,20 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
 
                                 const SizedBox(height: 20),
 
-                                const InfoBox(
-                                  text: 'Kod pokoju otrzymasz od hosta gry.',
+                                const HelpHint(
+                                  text: 'Kod pokoju otrzymasz od hosta.',
                                 ),
                               ],
                             ),
                           ),
 
                           SizedBox(
-                            height: Responsive.isSmall(context) ? 20 : 30,
+                            height: Responsive.isSmall(context) ? 28 : 40,
                           ),
 
                           MafiaButton(
-                            text: 'DOŁĄCZ',
+                            text: 'Dołącz',
+                            icon: Icons.arrow_forward_rounded,
                             onPressed: joinGame,
                           ),
                         ],
@@ -706,7 +778,6 @@ class LobbyScreen extends StatelessWidget {
 
     return Scaffold(
       body: MafiaBackground(
-        overlayAlpha: 0.50,
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -725,58 +796,44 @@ class LobbyScreen extends StatelessWidget {
                         maxWidth: Responsive.contentMaxWidth(context),
                       ),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          MafiaTopBar(
-                            title: 'LOBBY',
+                          ScreenHeader(
+                            title: 'Lobby',
+                            icon: Icons.meeting_room_rounded,
                             onBack: () => Navigator.pop(context),
+                            showTitle: true,
+                            showIcon: false,
                           ),
 
                           SizedBox(
                             height: Responsive.isSmall(context) ? 18 : 28,
                           ),
 
-                          NeonMafiaTitle(
-                            fontSize: Responsive.screenTitleSize(context),
-                          ),
-
-                          const SizedBox(height: 18),
-
                           MafiaPanel(
                             child: Column(
                               children: [
-                                Text(
-                                  'Kod pokoju',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.cinzel(
-                                    color: AppColors.neonWhite,
-                                    fontSize:
-                                        Responsive.isSmall(context) ? 20 : 22,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 2,
-                                    shadows: const [
-                                      Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 7,
-                                      ),
-                                    ],
-                                  ),
+                                SectionHeader(
+                                  title: 'Kod pokoju',
+                                  icon: Icons.key_rounded,
+                                  showIcon: false,
                                 ),
 
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 14),
 
                                 SelectableText(
                                   roomCode,
                                   textAlign: TextAlign.center,
-                                  style: GoogleFonts.rubikDistressed(
+                                  style: GoogleFonts.cinzel(
                                     color: AppColors.neonWhite,
                                     fontSize:
-                                        Responsive.isSmall(context) ? 38 : 48,
+                                        Responsive.isSmall(context) ? 36 : 46,
+                                    fontWeight: FontWeight.bold,
                                     letterSpacing: 6,
                                     shadows: const [
                                       Shadow(
                                         color: Colors.white,
-                                        blurRadius: 10,
+                                        blurRadius: 6,
                                       ),
                                       Shadow(
                                         color: Colors.black,
@@ -787,18 +844,18 @@ class LobbyScreen extends StatelessWidget {
                                   ),
                                 ),
 
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 10),
 
                                 Text(
                                   isHost
                                       ? 'Przekaż ten kod graczom.'
                                       : 'Czekaj, aż host rozpocznie grę.',
                                   textAlign: TextAlign.center,
-                                  style: GoogleFonts.fondamento(
+                                  style: GoogleFonts.cormorantGaramond(
                                     color: Colors.white70,
                                     fontSize:
-                                        Responsive.isSmall(context) ? 16 : 17,
-                                    height: 1.3,
+                                        Responsive.isSmall(context) ? 18 : 20,
+                                    fontStyle: FontStyle.italic,
                                   ),
                                 ),
                               ],
@@ -806,7 +863,7 @@ class LobbyScreen extends StatelessWidget {
                           ),
 
                           SizedBox(
-                            height: Responsive.isSmall(context) ? 18 : 22,
+                            height: Responsive.isSmall(context) ? 18 : 24,
                           ),
 
                           MafiaPanel(
@@ -816,37 +873,20 @@ class LobbyScreen extends StatelessWidget {
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: Text(
-                                        'Gracze',
-                                        style: GoogleFonts.cinzel(
-                                          color: AppColors.neonWhite,
-                                          fontSize:
-                                              Responsive.isSmall(context)
-                                                  ? 20
-                                                  : 24,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 1.5,
-                                          shadows: const [
-                                            Shadow(
-                                              color: Colors.white,
-                                              blurRadius: 7,
-                                            ),
-                                          ],
-                                        ),
+                                      child: SectionHeader(
+                                        title: 'Gracze',
+                                        icon: Icons.people_alt_outlined,
+                                        showIcon: false,
                                       ),
                                     ),
                                     Text(
                                       '${players.length}/$maxPlayers',
-                                      style: GoogleFonts.rubikDistressed(
+                                      style: GoogleFonts.cinzel(
                                         color: AppColors.neonWhite,
-                                        fontSize:
-                                            Responsive.isSmall(context) ? 22 : 26,
-                                        shadows: const [
-                                          Shadow(
-                                            color: Colors.white,
-                                            blurRadius: 6,
-                                          ),
-                                        ],
+                                        fontSize: Responsive.isSmall(context)
+                                            ? 20
+                                            : 24,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ],
@@ -863,7 +903,7 @@ class LobbyScreen extends StatelessWidget {
                                     name: name,
                                     isHost: playerIsHost,
                                   );
-                                }).toList(),
+                                }),
 
                                 if (players.length < maxPlayers)
                                   EmptyPlayerSlot(
@@ -874,66 +914,60 @@ class LobbyScreen extends StatelessWidget {
                           ),
 
                           SizedBox(
-                            height: Responsive.isSmall(context) ? 18 : 22,
+                            height: Responsive.isSmall(context) ? 18 : 24,
                           ),
 
                           MafiaPanel(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Konfiguracja gry',
-                                  style: GoogleFonts.cinzel(
-                                    color: AppColors.neonWhite,
-                                    fontSize:
-                                        Responsive.isSmall(context) ? 20 : 22,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.3,
-                                    shadows: const [
-                                      Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 7,
-                                      ),
-                                    ],
+                                SectionHeader(
+                                  title: 'Podsumowanie ról',
+                                  icon: Icons.analytics_outlined,
+                                  showIcon: false,
+                                ),
+
+                                const SizedBox(height: 18),
+
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxHeight: 190,
                                   ),
-                                ),
-
-                                const SizedBox(height: 14),
-
-                                SummaryText(
-                                  label: 'Mafia',
-                                  value: mafiaCount.toString(),
-                                ),
-                                SummaryText(
-                                  label: 'Detektyw',
-                                  value: detectiveCount.toString(),
-                                ),
-                                SummaryText(
-                                  label: 'Lekarz',
-                                  value: doctorCount.toString(),
-                                ),
-                                SummaryText(
-                                  label: 'Mieszkańcy',
-                                  value: citizensCount.toString(),
-                                ),
-                                SummaryText(
-                                  label: 'Status lobby',
-                                  value: isHost ? 'Host' : 'Gracz',
-                                  valueColor: isHost
-                                      ? Colors.greenAccent
-                                      : Colors.orangeAccent,
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      children: [
+                                        SummaryText(
+                                          label: 'Mafia',
+                                          value: mafiaCount.toString(),
+                                        ),
+                                        SummaryText(
+                                          label: 'Detektyw',
+                                          value: detectiveCount.toString(),
+                                        ),
+                                        SummaryText(
+                                          label: 'Lekarz',
+                                          value: doctorCount.toString(),
+                                        ),
+                                        SummaryText(
+                                          label: 'Mieszkańcy',
+                                          value: citizensCount.toString(),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
                           ),
 
                           SizedBox(
-                            height: Responsive.isSmall(context) ? 20 : 30,
+                            height: Responsive.isSmall(context) ? 26 : 36,
                           ),
 
                           if (isHost)
                             MafiaButton(
-                              text: 'START GRY',
+                              text: 'Start gry',
+                              icon: Icons.play_arrow_rounded,
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -948,10 +982,11 @@ class LobbyScreen extends StatelessWidget {
                             Text(
                               'Czekaj na start gry...',
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.fondamento(
+                              style: GoogleFonts.cormorantGaramond(
                                 color: Colors.white70,
                                 fontSize:
-                                    Responsive.isSmall(context) ? 16 : 18,
+                                    Responsive.isSmall(context) ? 20 : 24,
+                                fontStyle: FontStyle.italic,
                                 letterSpacing: 1,
                               ),
                             ),
@@ -969,122 +1004,6 @@ class LobbyScreen extends StatelessWidget {
   }
 }
 
-class LobbyPlayerTile extends StatelessWidget {
-  const LobbyPlayerTile({
-    super.key,
-    required this.name,
-    required this.isHost,
-  });
-
-  final String name;
-  final bool isHost;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: EdgeInsets.symmetric(
-        horizontal: Responsive.isSmall(context) ? 12 : 14,
-        vertical: Responsive.isSmall(context) ? 10 : 12,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isHost
-              ? AppColors.neonWhite.withOpacity(0.75)
-              : AppColors.neonWhite.withOpacity(0.35),
-        ),
-        boxShadow: [
-          if (isHost)
-            BoxShadow(
-              color: Colors.white.withOpacity(0.08),
-              blurRadius: 16,
-            ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isHost ? Icons.local_police_outlined : Icons.person_outline,
-            color: AppColors.neonWhite,
-          ),
-
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.cinzel(
-                color: Colors.white,
-                fontSize: Responsive.isSmall(context) ? 15 : 17,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
-            ),
-          ),
-
-          if (isHost)
-            Text(
-              'HOST',
-              style: GoogleFonts.cinzel(
-                color: Colors.greenAccent,
-                fontSize: Responsive.isSmall(context) ? 13 : 15,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class EmptyPlayerSlot extends StatelessWidget {
-  const EmptyPlayerSlot({
-    super.key,
-    required this.slotNumber,
-  });
-
-  final int slotNumber;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: EdgeInsets.symmetric(
-        horizontal: Responsive.isSmall(context) ? 12 : 14,
-        vertical: Responsive.isSmall(context) ? 10 : 12,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.32),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.neonWhite.withOpacity(0.22),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.person_add_alt_outlined,
-            color: Colors.white.withOpacity(0.45),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            'Wolne miejsce $slotNumber',
-            style: GoogleFonts.fondamento(
-              color: Colors.white54,
-              fontSize: Responsive.isSmall(context) ? 15 : 17,
-              letterSpacing: 1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // -----------------------------------------------------------------------------
 // SHARED UI
 // -----------------------------------------------------------------------------
@@ -1093,11 +1012,9 @@ class MafiaBackground extends StatelessWidget {
   const MafiaBackground({
     super.key,
     required this.child,
-    this.overlayAlpha = 0.45,
   });
 
   final Widget child;
-  final double overlayAlpha;
 
   static const String backgroundPath = 'assets/images/backgrounds/miasto.jpg';
 
@@ -1114,7 +1031,24 @@ class MafiaBackground extends StatelessWidget {
         ),
         Positioned.fill(
           child: Container(
-            color: Colors.black.withOpacity(overlayAlpha),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.96),
+                  Colors.black.withValues(alpha: 0.78),
+                  AppColors.deepRed.withValues(alpha: 0.78),
+                  AppColors.deepRed.withValues(alpha: 0.92),
+                ],
+                stops: const [
+                  0.00,
+                  0.36,
+                  0.72,
+                  1.00,
+                ],
+              ),
+            ),
           ),
         ),
         Positioned.fill(
@@ -1125,50 +1059,129 @@ class MafiaBackground extends StatelessWidget {
   }
 }
 
-class MafiaTopBar extends StatelessWidget {
-  const MafiaTopBar({
+class ScreenHeader extends StatelessWidget {
+  const ScreenHeader({
     super.key,
     required this.title,
+    required this.icon,
     required this.onBack,
+    this.showTitle = true,
+    this.showIcon = true,
+    this.largeIcon = false,
   });
 
   final String title;
+  final IconData icon;
   final VoidCallback onBack;
+  final bool showTitle;
+  final bool showIcon;
+  final bool largeIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconSize = largeIcon ? 34.0 : 23.0;
+
+    return Row(
+      children: [
+        InkWell(
+          onTap: onBack,
+          borderRadius: BorderRadius.circular(12),
+          child: const Padding(
+            padding: EdgeInsets.all(8),
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: AppColors.neonWhite,
+              size: 21,
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
+        if (showIcon)
+          Icon(
+            icon,
+            color: AppColors.neonWhite,
+            size: iconSize,
+          ),
+
+        if (showIcon && showTitle) const SizedBox(width: 10),
+
+        if (showTitle)
+          Expanded(
+            child: Text(
+              title.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.cinzel(
+                color: AppColors.neonWhite,
+                fontSize: Responsive.isSmall(context) ? 24 : 30,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+                shadows: const [
+                  Shadow(
+                    color: Colors.white,
+                    blurRadius: 6,
+                  ),
+                  Shadow(
+                    color: Colors.black,
+                    blurRadius: 12,
+                    offset: Offset(3, 3),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          const Spacer(),
+      ],
+    );
+  }
+}
+
+class SectionHeader extends StatelessWidget {
+  const SectionHeader({
+    super.key,
+    required this.title,
+    required this.icon,
+    this.showIcon = false,
+  });
+
+  final String title;
+  final IconData icon;
+  final bool showIcon;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        IconButton(
-          onPressed: onBack,
-          icon: const Icon(
-            Icons.arrow_back,
+        if (showIcon) ...[
+          Icon(
+            icon,
             color: AppColors.neonWhite,
+            size: 22,
           ),
-        ),
-        const SizedBox(width: 8),
+          const SizedBox(width: 10),
+        ],
         Expanded(
           child: Text(
-            title,
-            maxLines: 1,
+            title.toUpperCase(),
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.rubikDistressed(
+            style: GoogleFonts.cinzel(
               color: AppColors.neonWhite,
-              fontSize: Responsive.isSmall(context) ? 28 : 34,
-              letterSpacing: 2,
+              fontSize: Responsive.isSmall(context) ? 18 : 22,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.4,
               shadows: const [
                 Shadow(
                   color: Colors.white,
-                  blurRadius: 8,
-                ),
-                Shadow(
-                  color: AppColors.neonWhite,
-                  blurRadius: 18,
+                  blurRadius: 5,
                 ),
                 Shadow(
                   color: Colors.black,
-                  blurRadius: 12,
-                  offset: Offset(3, 3),
+                  blurRadius: 10,
+                  offset: Offset(2, 2),
                 ),
               ],
             ),
@@ -1190,7 +1203,7 @@ class NeonMafiaTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = Responsive.width(context);
-    final letterSpacing = Responsive.clamp(width * 0.015, 3, 8);
+    final letterSpacing = Responsive.clamp(width * 0.014, 3, 7);
 
     return SizedBox(
       width: double.infinity,
@@ -1209,19 +1222,15 @@ class NeonMafiaTitle extends StatelessWidget {
             shadows: const [
               Shadow(
                 color: Colors.white,
-                blurRadius: 6,
+                blurRadius: 3,
               ),
               Shadow(
                 color: AppColors.neonWhite,
-                blurRadius: 16,
-              ),
-              Shadow(
-                color: Color(0xFFFFE7B0),
-                blurRadius: 26,
+                blurRadius: 8,
               ),
               Shadow(
                 color: Colors.black,
-                blurRadius: 14,
+                blurRadius: 12,
                 offset: Offset(4, 4),
               ),
             ],
@@ -1248,20 +1257,20 @@ class MafiaPanel extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(small ? 14 : 20),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.64),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.black.withValues(alpha: 0.58),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: AppColors.neonWhite.withOpacity(0.58),
-          width: 1.5,
+          color: AppColors.frame,
+          width: 1.6,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.65),
+            color: Colors.black.withValues(alpha: 0.65),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withValues(alpha: 0.07),
             blurRadius: 24,
           ),
         ],
@@ -1278,49 +1287,57 @@ class MafiaTextField extends StatelessWidget {
     required this.label,
     required this.hint,
     this.textCapitalization = TextCapitalization.none,
+    this.mutedText = false,
   });
 
   final TextEditingController controller;
   final String label;
   final String hint;
   final TextCapitalization textCapitalization;
+  final bool mutedText;
 
   @override
   Widget build(BuildContext context) {
+    final textColor = mutedText ? AppColors.fieldGrey : Colors.white;
+
     return TextField(
       controller: controller,
       textCapitalization: textCapitalization,
       style: GoogleFonts.cinzel(
-        color: Colors.white,
+        color: textColor,
         fontSize: Responsive.isSmall(context) ? 16 : 18,
         fontWeight: FontWeight.bold,
       ),
       decoration: InputDecoration(
-        labelText: label,
+        labelText: label.toUpperCase(),
         hintText: hint,
         labelStyle: GoogleFonts.cinzel(
-          color: AppColors.neonWhite,
+          color: textColor,
           fontWeight: FontWeight.bold,
-          shadows: const [
-            Shadow(
-              color: Colors.white,
-              blurRadius: 5,
-            ),
-          ],
+          letterSpacing: 1,
+          shadows: mutedText
+              ? null
+              : const [
+                  Shadow(
+                    color: Colors.white,
+                    blurRadius: 4,
+                  ),
+                ],
         ),
-        hintStyle: const TextStyle(
-          color: Colors.white38,
+        hintStyle: TextStyle(
+          color: textColor.withValues(alpha: 0.55),
         ),
         filled: true,
-        fillColor: Colors.black.withOpacity(0.48),
+        fillColor: Colors.black.withValues(alpha: 0.35),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-            color: AppColors.neonWhite.withOpacity(0.45),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(
+            color: AppColors.frame,
+            width: 1.5,
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           borderSide: const BorderSide(
             color: AppColors.neonWhite,
             width: 2,
@@ -1354,14 +1371,14 @@ class CounterSetting extends StatelessWidget {
         final compact = constraints.maxWidth < 330;
 
         final titleWidget = Text(
-          title,
+          title.toUpperCase(),
           maxLines: compact ? 2 : 1,
           overflow: TextOverflow.ellipsis,
           style: GoogleFonts.cinzel(
             fontSize: Responsive.isSmall(context) ? 16 : 18,
             color: Colors.white,
             fontWeight: FontWeight.w800,
-            letterSpacing: 0.4,
+            letterSpacing: 0.5,
             shadows: const [
               Shadow(
                 color: Colors.black,
@@ -1394,13 +1411,14 @@ class CounterSetting extends StatelessWidget {
                 child: Text(
                   value.toString(),
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.rubikDistressed(
+                  style: GoogleFonts.cinzel(
                     color: Colors.white,
                     fontSize: Responsive.isSmall(context) ? 22 : 24,
+                    fontWeight: FontWeight.bold,
                     shadows: const [
                       Shadow(
                         color: Colors.white,
-                        blurRadius: 5,
+                        blurRadius: 4,
                       ),
                       Shadow(
                         color: Colors.black,
@@ -1429,7 +1447,7 @@ class CounterSetting extends StatelessWidget {
 
         return Padding(
           padding: EdgeInsets.symmetric(
-            vertical: Responsive.isSmall(context) ? 7 : 9,
+            vertical: Responsive.isSmall(context) ? 8 : 10,
           ),
           child: compact
               ? Column(
@@ -1456,46 +1474,6 @@ class CounterSetting extends StatelessWidget {
   }
 }
 
-class StatusPanel extends StatelessWidget {
-  const StatusPanel({
-    super.key,
-    required this.children,
-    required this.isValid,
-  });
-
-  final List<Widget> children;
-  final bool isValid;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(Responsive.isSmall(context) ? 12 : 14),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.055),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isValid
-              ? AppColors.neonWhite.withOpacity(0.45)
-              : Colors.redAccent,
-          width: 1.4,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isValid
-                ? Colors.white.withOpacity(0.06)
-                : Colors.red.withOpacity(0.12),
-            blurRadius: 18,
-          ),
-        ],
-      ),
-      child: Column(
-        children: children,
-      ),
-    );
-  }
-}
-
 class SummaryText extends StatelessWidget {
   const SummaryText({
     super.key,
@@ -1518,9 +1496,10 @@ class SummaryText extends StatelessWidget {
           label,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.fondamento(
+          style: GoogleFonts.cormorantGaramond(
             color: Colors.white70,
-            fontSize: Responsive.isSmall(context) ? 16 : 17,
+            fontSize: Responsive.isSmall(context) ? 17 : 19,
+            fontStyle: FontStyle.italic,
           ),
         );
 
@@ -1565,7 +1544,7 @@ class SummaryText extends StatelessWidget {
         }
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 7),
+          padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
               Expanded(
@@ -1588,8 +1567,8 @@ class SummaryText extends StatelessWidget {
   }
 }
 
-class InfoBox extends StatelessWidget {
-  const InfoBox({
+class HelpHint extends StatelessWidget {
+  const HelpHint({
     super.key,
     required this.text,
   });
@@ -1598,30 +1577,25 @@ class InfoBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(Responsive.isSmall(context) ? 12 : 14),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.neonWhite.withOpacity(0.45),
+    return Row(
+      children: [
+        Icon(
+          Icons.help_outline_rounded,
+          color: Colors.white.withValues(alpha: 0.55),
+          size: 19,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.white.withOpacity(0.08),
-            blurRadius: 18,
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.cormorantGaramond(
+              color: Colors.white60,
+              fontSize: Responsive.isSmall(context) ? 17 : 19,
+              fontStyle: FontStyle.italic,
+            ),
           ),
-        ],
-      ),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.fondamento(
-          color: Colors.white70,
-          fontSize: Responsive.isSmall(context) ? 16 : 17,
         ),
-      ),
+      ],
     );
   }
 }
@@ -1631,10 +1605,12 @@ class MafiaButton extends StatelessWidget {
     super.key,
     required this.text,
     required this.onPressed,
+    this.icon,
   });
 
   final String text;
   final VoidCallback onPressed;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -1642,49 +1618,268 @@ class MafiaButton extends StatelessWidget {
 
     return SizedBox(
       width: Responsive.buttonWidth(context),
-      height: small ? 50 : 58,
+      height: small ? 52 : 58,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black.withOpacity(0.82),
+          backgroundColor: Colors.black.withValues(alpha: 0.58),
           foregroundColor: Colors.white,
-          elevation: 12,
-          shadowColor: Colors.white24,
+          elevation: 0,
+          shadowColor: Colors.transparent,
           side: const BorderSide(
-            color: AppColors.neonWhite,
-            width: 2,
+            color: AppColors.frame,
+            width: 1.8,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            text,
-            maxLines: 1,
-            softWrap: false,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.rubikDistressed(
-              fontSize: small ? 22 : 26,
-              letterSpacing: 1,
-              color: Colors.white,
-              shadows: const [
-                Shadow(
-                  color: Colors.white,
-                  blurRadius: 8,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                color: AppColors.neonWhite,
+                size: small ? 20 : 22,
+              ),
+              const SizedBox(width: 10),
+            ],
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  text.toUpperCase(),
+                  maxLines: 1,
+                  softWrap: false,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cinzel(
+                    fontSize: small ? 18 : 20,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.4,
+                    color: Colors.white,
+                    shadows: const [
+                      Shadow(
+                        color: Colors.white,
+                        blurRadius: 5,
+                      ),
+                      Shadow(
+                        color: Colors.black,
+                        blurRadius: 10,
+                        offset: Offset(2, 2),
+                      ),
+                    ],
+                  ),
                 ),
-                Shadow(
-                  color: Colors.black,
-                  blurRadius: 10,
-                  offset: Offset(2, 2),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
+  }
+}
+
+class LobbyPlayerTile extends StatelessWidget {
+  const LobbyPlayerTile({
+    super.key,
+    required this.name,
+    required this.isHost,
+  });
+
+  final String name;
+  final bool isHost;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: Responsive.isSmall(context) ? 12 : 14,
+        vertical: Responsive.isSmall(context) ? 10 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isHost
+              ? AppColors.neonWhite.withValues(alpha: 0.75)
+              : AppColors.frame,
+        ),
+      ),
+      child: Row(
+        children: [
+          
+SizedBox(
+  width: 34,
+  child: Center(
+    child: isHost
+        ? const MafiaHatIcon(
+            size: 26,
+            color: AppColors.neonWhite,
+          )
+        : const Icon(
+            Icons.person_outline,
+            color: AppColors.neonWhite,
+            size: 25,
+          ),
+  ),
+),
+
+const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.cinzel(
+                color: Colors.white,
+                fontSize: Responsive.isSmall(context) ? 15 : 17,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+          if (isHost)
+            Text(
+              'HOST',
+              style: GoogleFonts.cinzel(
+                color: Colors.greenAccent,
+                fontSize: Responsive.isSmall(context) ? 13 : 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class EmptyPlayerSlot extends StatelessWidget {
+  const EmptyPlayerSlot({
+    super.key,
+    required this.slotNumber,
+  });
+
+  final int slotNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: Responsive.isSmall(context) ? 12 : 14,
+        vertical: Responsive.isSmall(context) ? 10 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.frame.withValues(alpha: 0.55),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.person_add_alt_outlined,
+            color: Colors.white.withValues(alpha: 0.45),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Wolne miejsce $slotNumber',
+            style: GoogleFonts.cormorantGaramond(
+              color: Colors.white54,
+              fontSize: Responsive.isSmall(context) ? 16 : 18,
+              fontStyle: FontStyle.italic,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+class MafiaHatIcon extends StatelessWidget {
+  const MafiaHatIcon({
+    super.key,
+    this.size = 24,
+    this.color = AppColors.neonWhite,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size(size, size),
+      painter: MafiaHatPainter(color: color),
+    );
+  }
+}
+
+class MafiaHatPainter extends CustomPainter {
+  const MafiaHatPainter({
+    required this.color,
+  });
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strokePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.075
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final fillPaint = Paint()
+      ..color = Colors.transparent
+      ..style = PaintingStyle.fill;
+
+    final w = size.width;
+    final h = size.height;
+
+    // Rondo kapelusza
+    final brim = Path()
+      ..moveTo(w * 0.16, h * 0.64)
+      ..quadraticBezierTo(w * 0.50, h * 0.76, w * 0.84, h * 0.64);
+
+    canvas.drawPath(brim, strokePaint);
+
+    // Górna część kapelusza
+    final crown = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        w * 0.30,
+        h * 0.28,
+        w * 0.40,
+        h * 0.34,
+      ),
+      Radius.circular(w * 0.08),
+    );
+
+    canvas.drawRRect(crown, fillPaint);
+    canvas.drawRRect(crown, strokePaint);
+
+    // Górna linia kapelusza
+    final topLine = Path()
+      ..moveTo(w * 0.34, h * 0.28)
+      ..quadraticBezierTo(w * 0.50, h * 0.18, w * 0.66, h * 0.28);
+
+    canvas.drawPath(topLine, strokePaint);
+
+    // Pasek kapelusza
+    final band = Path()
+      ..moveTo(w * 0.32, h * 0.49)
+      ..lineTo(w * 0.68, h * 0.49);
+
+    canvas.drawPath(band, strokePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant MafiaHatPainter oldDelegate) {
+    return oldDelegate.color != color;
   }
 }
