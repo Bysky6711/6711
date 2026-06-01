@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 
+import 'data/card.dart';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -22,9 +25,8 @@ class Responsive {
 
   static bool isSmall(BuildContext context) => width(context) < 390;
 
-  static double clamp(double value, double min, double max) {
-    return value.clamp(min, max).toDouble();
-  }
+  static double clamp(double value, double min, double max) =>
+      value.clamp(min, max).toDouble();
 
   static double horizontalPadding(BuildContext context) {
     final w = width(context);
@@ -243,21 +245,18 @@ class _HostGameScreenState extends State<HostGameScreen> {
   void setPlayers(int value) {
     setState(() {
       players = value;
-
-      if (specialRoles > players) {
-        final overflow = specialRoles - players;
-
-        if (doctor >= overflow) {
-          doctor -= overflow;
-        } else if (detective >= overflow - doctor) {
-          final rest = overflow - doctor;
-          doctor = 0;
-          detective -= rest;
-        } else {
-          final rest = overflow - doctor - detective;
-          doctor = 0;
-          detective = 0;
-          mafia = math.max(1, mafia - rest);
+      // Mafia zostaje min. 1, więc role specjalne max = players - 1.
+      final maxSpecial = math.max(0, players - 1);
+      var over = (mafia + detective + doctor) - maxSpecial;
+      if (over > 0) {
+        final dDoc = math.min(doctor, over);
+        doctor -= dDoc;
+        over -= dDoc;
+        final dDet = math.min(detective, over);
+        detective -= dDet;
+        over -= dDet;
+        if (over > 0) {
+          mafia = math.max(1, mafia - over);
         }
       }
     });
@@ -265,7 +264,7 @@ class _HostGameScreenState extends State<HostGameScreen> {
 
   String generateRoomCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final random = math.Random();
+    final random = math.Random.secure();
 
     return List.generate(
       5,
@@ -319,7 +318,7 @@ class _HostGameScreenState extends State<HostGameScreen> {
         name: 'Mafia',
         value: mafia,
         min: 1,
-        max: math.min(6, players),
+        max: math.min(6, math.max(1, players - detective - doctor)),
         onChanged: (value) {
           setState(() {
             mafia = value;
@@ -330,7 +329,7 @@ class _HostGameScreenState extends State<HostGameScreen> {
         name: 'Detektyw',
         value: detective,
         min: 0,
-        max: math.min(3, players),
+        max: math.min(3, math.max(0, players - mafia - doctor)),
         onChanged: (value) {
           setState(() {
             detective = value;
@@ -341,7 +340,7 @@ class _HostGameScreenState extends State<HostGameScreen> {
         name: 'Lekarz',
         value: doctor,
         min: 0,
-        max: math.min(3, players),
+        max: math.min(3, math.max(0, players - mafia - detective)),
         onChanged: (value) {
           setState(() {
             doctor = value;
@@ -431,8 +430,8 @@ class _HostGameScreenState extends State<HostGameScreen> {
                                     padding: EdgeInsets.zero,
                                     physics: const ClampingScrollPhysics(),
                                     itemCount: roleSettings.length,
-                                    separatorBuilder: (_, _) =>
-                                        const SizedBox(height: 8),
+                                    separatorBuilder: (context, index) =>
+                                      const SizedBox(height: 8),
                                     itemBuilder: (context, index) {
                                       final role = roleSettings[index];
 
@@ -964,19 +963,20 @@ class LobbyScreen extends StatelessWidget {
                           ),
 
                           if (isHost)
-                            MafiaButton(
-                              text: 'Start gry',
-                              icon: Icons.play_arrow_rounded,
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Tutaj później dodamy start gry i losowanie ról.',
-                                    ),
+                          MafiaButton(
+                            text: 'Start gry',
+                            icon: Icons.play_arrow_rounded,
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const RoleRevealScreen(
+                                    roleType: MafiaRoleCardType.host,
                                   ),
-                                );
-                              },
-                            )
+                                ),
+                              );
+                            },
+                          )
                           else
                             Text(
                               'Czekaj na start gry...',
@@ -1780,10 +1780,6 @@ class MafiaHatPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    final fillPaint = Paint()
-      ..color = Colors.transparent
-      ..style = PaintingStyle.fill;
-
     final w = size.width;
     final h = size.height;
 
@@ -1803,7 +1799,6 @@ class MafiaHatPainter extends CustomPainter {
       Radius.circular(w * 0.08),
     );
 
-    canvas.drawRRect(crown, fillPaint);
     canvas.drawRRect(crown, strokePaint);
 
     final topLine = Path()

@@ -25,6 +25,7 @@ flutter:
 
   assets:
     - assets/images/backgrounds/
+    - assets/images/card/
 
   fonts:
     - family: Bernier
