@@ -1258,7 +1258,7 @@ class _StartedPlayerCardTile extends StatelessWidget {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerRight,
                   child: Text(
-                    'Klasa: $roleName',
+                    'Rola: $roleName',
                     maxLines: 1,
                     softWrap: false,
                     textAlign: TextAlign.right,

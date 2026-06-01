@@ -68,7 +68,7 @@ class GameRoles {
     ),
     GameRoleDefinition(
       type: MafiaRoleCardType.citizen,
-      name: 'Mieszkańcy',
+      name: 'Obywatel',
       min: 0,
       max: 99,
       defaultCount: 0,
