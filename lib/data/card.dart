@@ -3,13 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-enum MafiaRoleCardType {
-  host,
-  mafia,
-  detective,
-  doctor,
-  citizen,
-}
+import 'roles.dart';
+
 
 class RoleRevealScreen extends StatefulWidget {
   const RoleRevealScreen({
@@ -273,7 +268,7 @@ class _RoleCardBack extends StatelessWidget {
 class _FullBackCardImage extends StatelessWidget {
   const _FullBackCardImage();
 
-  static const String cardBackPath = 'assets/images/card/card_back.jpg';
+  static const String cardBackPath = 'assets/images/card/card_back_red.jpg';
 
   @override
   Widget build(BuildContext context) {
@@ -532,20 +527,24 @@ class _RolePlaceholderPainter extends CustomPainter {
     canvas.drawPath(iconPath, strokePaint);
   }
 
-  Path _iconPath(Size size, MafiaRoleCardType roleType) {
-    switch (roleType) {
-      case MafiaRoleCardType.host:
-        return _hostPath(size);
-      case MafiaRoleCardType.mafia:
-        return _hatPath(size);
-      case MafiaRoleCardType.detective:
-        return _magnifierPath(size);
-      case MafiaRoleCardType.doctor:
-        return _crossPath(size);
-      case MafiaRoleCardType.citizen:
-        return _personPath(size);
-    }
+  
+Path _iconPath(Size size, MafiaRoleCardType roleType) {
+  switch (roleType) {
+    case MafiaRoleCardType.host:
+      return _hostPath(size);
+    case MafiaRoleCardType.mafia:
+      return _hatPath(size);
+    case MafiaRoleCardType.detective:
+      return _magnifierPath(size);
+    case MafiaRoleCardType.doctor:
+      return _crossPath(size);
+    case MafiaRoleCardType.sheriff:
+      return _sheriffPath(size);
+    case MafiaRoleCardType.citizen:
+      return _personPath(size);
   }
+}
+
 
   Path _hostPath(Size size) {
     final w = size.width;
@@ -603,6 +602,41 @@ class _RolePlaceholderPainter extends CustomPainter {
       ..moveTo(w * 0.34, h * 0.51)
       ..lineTo(w * 0.66, h * 0.51);
   }
+  Path _sheriffPath(Size size) {
+  final w = size.width;
+  final h = size.height;
+
+  final path = Path();
+
+  final centerX = w * 0.50;
+  final centerY = h * 0.52;
+  final outerRadius = w * 0.20;
+  final innerRadius = w * 0.085;
+
+  for (int i = 0; i < 12; i++) {
+    final angle = -math.pi / 2 + i * math.pi / 6;
+    final radius = i.isEven ? outerRadius : innerRadius;
+
+    final x = centerX + math.cos(angle) * radius;
+    final y = centerY + math.sin(angle) * radius;
+
+    if (i == 0) {
+      path.moveTo(x, y);
+    } else {
+      path.lineTo(x, y);
+    }
+  }
+
+  path.close();
+
+  path.moveTo(w * 0.42, h * 0.52);
+  path.lineTo(w * 0.58, h * 0.52);
+
+  path.moveTo(w * 0.50, h * 0.44);
+  path.lineTo(w * 0.50, h * 0.60);
+
+  return path;
+}
 
   Path _personPath(Size size) {
     final w = size.width;
@@ -628,7 +662,9 @@ class _RolePlaceholderPainter extends CustomPainter {
       case MafiaRoleCardType.detective:
         return const Color(0xFF4DA3FF);
       case MafiaRoleCardType.doctor:
-        return const Color(0xFF55FF99);
+        return const Color(0xFF55FF99);  
+      case MafiaRoleCardType.sheriff:
+      return const Color(0xFFFFD54F);
       case MafiaRoleCardType.citizen:
         return const Color(0xFFD8D8D8);
     }
