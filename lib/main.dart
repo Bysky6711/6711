@@ -7,6 +7,9 @@ import 'core/app_colors.dart';
 import 'core/responsive.dart';
 import 'data/card.dart';
 import 'data/roles.dart';
+import 'models/game_room.dart';
+import 'models/room_status.dart';
+import 'services/local_room_service.dart';
 import 'widgets/shared_widgets.dart';
 
 void main() {
@@ -30,11 +33,7 @@ class RoleSetting {
 }
 
 class RoleSummary {
-  const RoleSummary({
-    required this.name,
-    required this.value,
-    this.valueColor,
-  });
+  const RoleSummary({required this.name, required this.value, this.valueColor});
 
   final String name;
   final String value;
@@ -49,9 +48,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Mafia',
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.black,
-      ),
+      theme: ThemeData.dark().copyWith(scaffoldBackgroundColor: Colors.black),
       home: const MainMenuScreen(),
     );
   }
@@ -87,9 +84,7 @@ class MainMenuScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          SizedBox(
-                            height: Responsive.height(context) * 0.24,
-                          ),
+                          SizedBox(height: Responsive.height(context) * 0.24),
                           NeonMafiaTitle(
                             fontSize: Responsive.mainTitleSize(context),
                           ),
@@ -104,10 +99,7 @@ class MainMenuScreen extends StatelessWidget {
                               fontWeight: FontWeight.w600,
                               letterSpacing: 1.4,
                               shadows: const [
-                                Shadow(
-                                  color: Colors.white,
-                                  blurRadius: 4,
-                                ),
+                                Shadow(color: Colors.white, blurRadius: 4),
                                 Shadow(
                                   color: Colors.black,
                                   blurRadius: 10,
@@ -144,9 +136,7 @@ class MainMenuScreen extends StatelessWidget {
                               );
                             },
                           ),
-                          SizedBox(
-                            height: Responsive.height(context) * 0.14,
-                          ),
+                          SizedBox(height: Responsive.height(context) * 0.14),
                         ],
                       ),
                     ),
@@ -181,12 +171,10 @@ class _HostGameScreenState extends State<HostGameScreen> {
 
   int get specialRoles => GameRoles.specialRolesCount(roleCounts);
 
-  int get citizens => GameRoles.citizensCount(
-        players: players,
-        roleCounts: roleCounts,
-      );
+  int get citizens =>
+      GameRoles.citizensCount(players: players, roleCounts: roleCounts);
 
-  bool get isValid => specialRoles <= math.max(0, players - 1);
+  bool get isValid => specialRoles <= players;
 
   @override
   void dispose() {
@@ -200,10 +188,8 @@ class _HostGameScreenState extends State<HostGameScreen> {
 
   void setRoleValue(MafiaRoleCardType type, int value) {
     setState(() {
-      roleCounts = {
-        ...roleCounts,
-        type: value,
-      };
+      roleCounts = {...roleCounts, type: value};
+
       normalizeRoleCounts();
     });
   }
@@ -216,7 +202,7 @@ class _HostGameScreenState extends State<HostGameScreen> {
   }
 
   void normalizeRoleCounts() {
-    final maxSpecial = math.max(0, players - 1);
+    final maxSpecial = players;
     var total = GameRoles.specialRolesCount(roleCounts);
 
     if (total <= maxSpecial) return;
@@ -239,13 +225,12 @@ class _HostGameScreenState extends State<HostGameScreen> {
   }
 
   int maxForRole(GameRoleDefinition role) {
-    final maxSpecial = math.max(0, players - 1);
+    final maxSpecial = players;
 
     var otherRolesCount = 0;
 
     for (final otherRole in GameRoles.configurable) {
       if (otherRole.type == role.type) continue;
-
       otherRolesCount += roleCounts[otherRole.type] ?? 0;
     }
 
@@ -255,44 +240,30 @@ class _HostGameScreenState extends State<HostGameScreen> {
     return math.min(role.max, safeAvailable);
   }
 
-  String generateRoomCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final random = math.Random.secure();
-
-    return List.generate(
-      5,
-      (index) => chars[random.nextInt(chars.length)],
-    ).join();
-  }
-
   void createRoom() {
     normalizeRoleCounts();
 
     if (!isValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Konfiguracja gry jest niepoprawna.'),
-        ),
+        const SnackBar(content: Text('Konfiguracja gry jest niepoprawna.')),
       );
       return;
     }
 
     final hostName = hostNameController.text.trim().isEmpty
-        ? 'Host'
+        ? 'Gospodarz'
         : hostNameController.text.trim();
 
-    final roomCode = generateRoomCode();
+    final room = LocalRoomService.createRoom(
+      hostName: hostName,
+      maxPlayers: players,
+      roleCounts: roleCounts,
+    );
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LobbyScreen(
-          roomCode: roomCode,
-          playerName: hostName,
-          isHost: true,
-          maxPlayers: players,
-          roleCounts: Map<MafiaRoleCardType, int>.from(roleCounts),
-        ),
+        builder: (context) => LobbyScreen(initialRoom: room, isHostView: true),
       ),
     );
   }
@@ -387,7 +358,7 @@ class _HostGameScreenState extends State<HostGameScreen> {
                                 const SizedBox(height: 20),
                                 MafiaTextField(
                                   controller: hostNameController,
-                                  label: 'Nazwa hosta',
+                                  label: 'Nazwa gospodarza',
                                   hint: 'np. Wiktor',
                                   mutedText: false,
                                 ),
@@ -515,29 +486,10 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
       return;
     }
 
-    if (roomCode.length < 4) {
-      setState(() {
-        errorMessage = 'Kod pokoju jest za krótki.';
-      });
-      return;
-    }
-
     setState(() {
-      errorMessage = null;
+      errorMessage =
+          'Dołączanie po kodzie dodamy przy prawdziwym lobby online. Na razie testuj lobby przez hostowanie.';
     });
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LobbyScreen(
-          roomCode: roomCode,
-          playerName: playerName,
-          isHost: false,
-          maxPlayers: 6,
-          roleCounts: GameRoles.defaultRoleCounts(),
-        ),
-      ),
-    );
   }
 
   @override
@@ -585,10 +537,7 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                               fontStyle: FontStyle.italic,
                               letterSpacing: 1.2,
                               shadows: const [
-                                Shadow(
-                                  color: Colors.white,
-                                  blurRadius: 5,
-                                ),
+                                Shadow(color: Colors.white, blurRadius: 5),
                                 Shadow(
                                   color: Colors.black,
                                   blurRadius: 12,
@@ -640,16 +589,17 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
                                   const SizedBox(height: 16),
                                   Text(
                                     errorMessage!,
-                                    style: GoogleFonts.cinzel(
+                                    style: GoogleFonts.cormorantGaramond(
                                       color: Colors.redAccent,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      fontStyle: FontStyle.italic,
                                     ),
                                   ),
                                 ],
                                 const SizedBox(height: 20),
                                 const HelpHint(
-                                  text: 'Kod pokoju otrzymasz od hosta.',
+                                  text:
+                                      'Na razie lokalne lobby testujemy z poziomu gospodarza.',
                                 ),
                               ],
                             ),
@@ -680,51 +630,94 @@ class _JoinGameScreenState extends State<JoinGameScreen> {
 // LOBBY SCREEN
 // -----------------------------------------------------------------------------
 
-class LobbyScreen extends StatelessWidget {
+class LobbyScreen extends StatefulWidget {
   const LobbyScreen({
     super.key,
-    required this.roomCode,
-    required this.playerName,
-    required this.isHost,
-    required this.maxPlayers,
-    required this.roleCounts,
+    required this.initialRoom,
+    required this.isHostView,
   });
 
-  final String roomCode;
-  final String playerName;
-  final bool isHost;
-  final int maxPlayers;
-  final Map<MafiaRoleCardType, int> roleCounts;
+  final GameRoom initialRoom;
+  final bool isHostView;
+
+  @override
+  State<LobbyScreen> createState() => _LobbyScreenState();
+}
+
+class _LobbyScreenState extends State<LobbyScreen> {
+  late GameRoom room;
+
+  int testPlayerNumber = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    room = widget.initialRoom;
+  }
 
   int get citizensCount {
     return GameRoles.citizensCount(
-      players: maxPlayers,
-      roleCounts: roleCounts,
+      players: room.maxPlayers,
+      roleCounts: room.roleCounts,
     );
+  }
+
+  void showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void addTestPlayer() {
+    try {
+      final updatedRoom = LocalRoomService.addPlayer(
+        room: room,
+        playerName: 'Gracz $testPlayerNumber',
+      );
+
+      setState(() {
+        room = updatedRoom;
+        testPlayerNumber++;
+      });
+    } catch (error) {
+      showMessage(error.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  void startGame() {
+    final error = LocalRoomService.startGameError(room);
+
+    if (error != null) {
+      showMessage(error);
+      return;
+    }
+
+    try {
+      final startedRoom = LocalRoomService.startGame(room);
+
+      setState(() {
+        room = startedRoom;
+      });
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              const RoleRevealScreen(roleType: MafiaRoleCardType.host),
+        ),
+      );
+    } catch (error) {
+      showMessage(error.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final players = <Map<String, Object>>[
-      {
-        'name': playerName,
-        'isHost': isHost,
-      },
-      {
-        'name': 'Gracz 2',
-        'isHost': false,
-      },
-      {
-        'name': 'Gracz 3',
-        'isHost': false,
-      },
-    ];
-
     final roleSummary = <RoleSummary>[
       ...GameRoles.configurable.map((role) {
         return RoleSummary(
           name: role.name,
-          value: GameRoles.countOf(roleCounts, role.type).toString(),
+          value: GameRoles.countOf(room.roleCounts, role.type).toString(),
         );
       }),
       RoleSummary(
@@ -775,12 +768,13 @@ class LobbyScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 14),
                                 SelectableText(
-                                  roomCode,
+                                  room.roomCode,
                                   textAlign: TextAlign.center,
                                   style: GoogleFonts.cinzel(
                                     color: AppColors.neonWhite,
-                                    fontSize:
-                                        Responsive.isSmall(context) ? 36 : 46,
+                                    fontSize: Responsive.isSmall(context)
+                                        ? 36
+                                        : 46,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 6,
                                     shadows: const [
@@ -798,14 +792,15 @@ class LobbyScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  isHost
+                                  room.status == RoomStatus.waiting
                                       ? 'Przekaż ten kod graczom.'
-                                      : 'Czekaj, aż host rozpocznie grę.',
+                                      : 'Gra została rozpoczęta.',
                                   textAlign: TextAlign.center,
                                   style: GoogleFonts.cormorantGaramond(
                                     color: Colors.white70,
-                                    fontSize:
-                                        Responsive.isSmall(context) ? 18 : 20,
+                                    fontSize: Responsive.isSmall(context)
+                                        ? 18
+                                        : 20,
                                     fontStyle: FontStyle.italic,
                                   ),
                                 ),
@@ -829,7 +824,7 @@ class LobbyScreen extends StatelessWidget {
                                       ),
                                     ),
                                     Text(
-                                      '${players.length}/$maxPlayers',
+                                      '${room.players.length}/${room.maxPlayers}',
                                       style: GoogleFonts.cinzel(
                                         color: AppColors.neonWhite,
                                         fontSize: Responsive.isSmall(context)
@@ -841,19 +836,19 @@ class LobbyScreen extends StatelessWidget {
                                   ],
                                 ),
                                 const SizedBox(height: 16),
-                                ...players.map<Widget>((player) {
-                                  final name = player['name'] as String;
-                                  final playerIsHost =
-                                      player['isHost'] as bool;
-
+                                LobbyPlayerTile(
+                                  name: room.hostName,
+                                  isHost: true,
+                                ),
+                                ...room.players.map<Widget>((player) {
                                   return LobbyPlayerTile(
-                                    name: name,
-                                    isHost: playerIsHost,
+                                    name: player.name,
+                                    isHost: false,
                                   );
                                 }),
-                                if (players.length < maxPlayers)
+                                for (var i = 0; i < room.emptySlots; i++)
                                   EmptyPlayerSlot(
-                                    slotNumber: players.length + 1,
+                                    slotNumber: room.players.length + i + 1,
                                   ),
                               ],
                             ),
@@ -891,20 +886,33 @@ class LobbyScreen extends StatelessWidget {
                             ),
                           ),
                           SizedBox(
-                            height: Responsive.isSmall(context) ? 26 : 36,
+                            height: Responsive.isSmall(context) ? 22 : 30,
                           ),
-                          if (isHost)
+                          if (widget.isHostView &&
+                              room.status == RoomStatus.waiting) ...[
+                            MafiaButton(
+                              text: 'Dodaj gracza testowego',
+                              icon: Icons.person_add_alt_rounded,
+                              onPressed: addTestPlayer,
+                            ),
+                            const SizedBox(height: 14),
                             MafiaButton(
                               text: 'Start gry',
                               icon: Icons.play_arrow_rounded,
+                              onPressed: startGame,
+                            ),
+                          ] else if (room.status == RoomStatus.inProgress)
+                            MafiaButton(
+                              text: 'Karta gospodarza',
+                              icon: Icons.style_rounded,
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         const RoleRevealScreen(
-                                      roleType: MafiaRoleCardType.host,
-                                    ),
+                                          roleType: MafiaRoleCardType.host,
+                                        ),
                                   ),
                                 );
                               },
@@ -915,8 +923,7 @@ class LobbyScreen extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: GoogleFonts.cormorantGaramond(
                                 color: Colors.white70,
-                                fontSize:
-                                    Responsive.isSmall(context) ? 20 : 24,
+                                fontSize: Responsive.isSmall(context) ? 20 : 24,
                                 fontStyle: FontStyle.italic,
                                 letterSpacing: 1,
                               ),

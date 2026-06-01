@@ -63,10 +63,7 @@ class SummaryText extends StatelessWidget {
               children: [
                 labelWidget,
                 const SizedBox(height: 4),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: valueWidget,
-                ),
+                Align(alignment: Alignment.centerRight, child: valueWidget),
               ],
             ),
           );
@@ -76,10 +73,7 @@ class SummaryText extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
-              Expanded(
-                flex: 5,
-                child: labelWidget,
-              ),
+              Expanded(flex: 5, child: labelWidget),
               const SizedBox(width: 12),
               Expanded(
                 flex: 5,

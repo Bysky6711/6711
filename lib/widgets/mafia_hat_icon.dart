@@ -25,9 +25,7 @@ class MafiaHatIcon extends StatelessWidget {
 }
 
 class MafiaHatPainter extends CustomPainter {
-  const MafiaHatPainter({
-    required this.color,
-  });
+  const MafiaHatPainter({required this.color});
 
   final Color color;
 
@@ -50,12 +48,7 @@ class MafiaHatPainter extends CustomPainter {
     canvas.drawPath(brim, strokePaint);
 
     final crown = RRect.fromRectAndRadius(
-      Rect.fromLTWH(
-        w * 0.30,
-        h * 0.28,
-        w * 0.40,
-        h * 0.34,
-      ),
+      Rect.fromLTWH(w * 0.30, h * 0.28, w * 0.40, h * 0.34),
       Radius.circular(w * 0.08),
     );
 

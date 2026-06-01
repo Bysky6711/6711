@@ -41,12 +41,7 @@ class ScreenHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        if (showIcon)
-          Icon(
-            icon,
-            color: AppColors.neonWhite,
-            size: iconSize,
-          ),
+        if (showIcon) Icon(icon, color: AppColors.neonWhite, size: iconSize),
         if (showIcon && showTitle) const SizedBox(width: 10),
         if (showTitle)
           Expanded(
@@ -60,10 +55,7 @@ class ScreenHeader extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2,
                 shadows: const [
-                  Shadow(
-                    color: Colors.white,
-                    blurRadius: 6,
-                  ),
+                  Shadow(color: Colors.white, blurRadius: 6),
                   Shadow(
                     color: Colors.black,
                     blurRadius: 12,

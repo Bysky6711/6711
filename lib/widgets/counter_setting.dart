@@ -26,9 +26,7 @@ class CounterSetting extends StatelessWidget {
     final safeValue = value.clamp(min, max);
 
     return ConstrainedBox(
-      constraints: BoxConstraints(
-        minHeight: small ? 48 : 54,
-      ),
+      constraints: BoxConstraints(minHeight: small ? 48 : 54),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -68,10 +66,7 @@ class CounterSetting extends StatelessWidget {
                 fontSize: small ? 20 : 24,
                 fontWeight: FontWeight.bold,
                 shadows: const [
-                  Shadow(
-                    color: Colors.white,
-                    blurRadius: 4,
-                  ),
+                  Shadow(color: Colors.white, blurRadius: 4),
                   Shadow(
                     color: Colors.black,
                     blurRadius: 8,

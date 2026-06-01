@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 
 class MafiaBackground extends StatelessWidget {
-  const MafiaBackground({
-    super.key,
-    required this.child,
-  });
+  const MafiaBackground({super.key, required this.child});
 
   final Widget child;
 
@@ -35,19 +32,12 @@ class MafiaBackground extends StatelessWidget {
                   AppColors.deepRed.withValues(alpha: 0.78),
                   AppColors.deepRed.withValues(alpha: 0.92),
                 ],
-                stops: const [
-                  0.00,
-                  0.36,
-                  0.72,
-                  1.00,
-                ],
+                stops: const [0.00, 0.36, 0.72, 1.00],
               ),
             ),
           ),
         ),
-        Positioned.fill(
-          child: child,
-        ),
+        Positioned.fill(child: child),
       ],
     );
   }

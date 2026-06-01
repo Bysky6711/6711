@@ -5,13 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'roles.dart';
 
-
 class RoleRevealScreen extends StatefulWidget {
-  const RoleRevealScreen({
-    super.key,
-    required this.roleType,
-    this.imagePath,
-  });
+  const RoleRevealScreen({super.key, required this.roleType, this.imagePath});
 
   final MafiaRoleCardType roleType;
   final String? imagePath;
@@ -82,9 +77,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
                   ),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: 520,
-                      ),
+                      constraints: const BoxConstraints(maxWidth: 520),
                       child: Column(
                         children: [
                           Row(
@@ -117,10 +110,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
                               fontStyle: FontStyle.italic,
                               letterSpacing: 1.3,
                               shadows: const [
-                                Shadow(
-                                  color: Colors.white,
-                                  blurRadius: 5,
-                                ),
+                                Shadow(color: Colors.white, blurRadius: 5),
                                 Shadow(
                                   color: Colors.black,
                                   blurRadius: 12,
@@ -205,10 +195,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen>
 }
 
 class _CardBackground extends StatelessWidget {
-  const _CardBackground({
-    required this.child,
-    required this.backgroundPath,
-  });
+  const _CardBackground({required this.child, required this.backgroundPath});
 
   final Widget child;
   final String backgroundPath;
@@ -236,19 +223,12 @@ class _CardBackground extends StatelessWidget {
                   _CardColors.deepRed.withValues(alpha: 0.78),
                   _CardColors.deepRed.withValues(alpha: 0.94),
                 ],
-                stops: const [
-                  0.00,
-                  0.36,
-                  0.72,
-                  1.00,
-                ],
+                stops: const [0.00, 0.36, 0.72, 1.00],
               ),
             ),
           ),
         ),
-        Positioned.fill(
-          child: child,
-        ),
+        Positioned.fill(child: child),
       ],
     );
   }
@@ -259,9 +239,7 @@ class _RoleCardBack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _CardFrame(
-      child: _FullBackCardImage(),
-    );
+    return const _CardFrame(child: _FullBackCardImage());
   }
 }
 
@@ -291,11 +269,7 @@ class _FullBackCardImage extends StatelessWidget {
                 Colors.black.withValues(alpha: 0.10),
                 Colors.black.withValues(alpha: 0.34),
               ],
-              stops: const [
-                0.45,
-                0.78,
-                1.00,
-              ],
+              stops: const [0.45, 0.78, 1.00],
             ),
           ),
         ),
@@ -310,11 +284,7 @@ class _FullBackCardImage extends StatelessWidget {
                 Colors.transparent,
                 Colors.black.withValues(alpha: 0.12),
               ],
-              stops: const [
-                0.00,
-                0.42,
-                1.00,
-              ],
+              stops: const [0.00, 0.42, 1.00],
             ),
           ),
         ),
@@ -324,10 +294,7 @@ class _FullBackCardImage extends StatelessWidget {
 }
 
 class _RoleCardFront extends StatelessWidget {
-  const _RoleCardFront({
-    required this.roleType,
-    this.imagePath,
-  });
+  const _RoleCardFront({required this.roleType, this.imagePath});
 
   final MafiaRoleCardType roleType;
   final String? imagePath;
@@ -338,16 +305,10 @@ class _RoleCardFront extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Container(
-            color: Colors.black.withValues(alpha: 0.28),
-          ),
+          Container(color: Colors.black.withValues(alpha: 0.28)),
 
           if (imagePath == null)
-            CustomPaint(
-              painter: _RolePlaceholderPainter(
-                roleType: roleType,
-              ),
-            )
+            CustomPaint(painter: _RolePlaceholderPainter(roleType: roleType))
           else
             Image.asset(
               imagePath!,
@@ -365,11 +326,7 @@ class _RoleCardFront extends StatelessWidget {
                   Colors.black.withValues(alpha: 0.06),
                   Colors.black.withValues(alpha: 0.26),
                 ],
-                stops: const [
-                  0.45,
-                  0.78,
-                  1.00,
-                ],
+                stops: const [0.45, 0.78, 1.00],
               ),
             ),
           ),
@@ -380,9 +337,7 @@ class _RoleCardFront extends StatelessWidget {
 }
 
 class _CardFrame extends StatelessWidget {
-  const _CardFrame({
-    required this.child,
-  });
+  const _CardFrame({required this.child});
 
   final Widget child;
 
@@ -475,9 +430,7 @@ class _CardFrame extends StatelessWidget {
                   ),
 
                   IgnorePointer(
-                    child: CustomPaint(
-                      painter: _CardBorderPainter(),
-                    ),
+                    child: CustomPaint(painter: _CardBorderPainter()),
                   ),
                 ],
               ),
@@ -490,9 +443,7 @@ class _CardFrame extends StatelessWidget {
 }
 
 class _RolePlaceholderPainter extends CustomPainter {
-  const _RolePlaceholderPainter({
-    required this.roleType,
-  });
+  const _RolePlaceholderPainter({required this.roleType});
 
   final MafiaRoleCardType roleType;
 
@@ -527,24 +478,22 @@ class _RolePlaceholderPainter extends CustomPainter {
     canvas.drawPath(iconPath, strokePaint);
   }
 
-  
-Path _iconPath(Size size, MafiaRoleCardType roleType) {
-  switch (roleType) {
-    case MafiaRoleCardType.host:
-      return _hostPath(size);
-    case MafiaRoleCardType.mafia:
-      return _hatPath(size);
-    case MafiaRoleCardType.detective:
-      return _magnifierPath(size);
-    case MafiaRoleCardType.doctor:
-      return _crossPath(size);
-    case MafiaRoleCardType.sheriff:
-      return _sheriffPath(size);
-    case MafiaRoleCardType.citizen:
-      return _personPath(size);
+  Path _iconPath(Size size, MafiaRoleCardType roleType) {
+    switch (roleType) {
+      case MafiaRoleCardType.host:
+        return _hostPath(size);
+      case MafiaRoleCardType.mafia:
+        return _hatPath(size);
+      case MafiaRoleCardType.detective:
+        return _magnifierPath(size);
+      case MafiaRoleCardType.doctor:
+        return _crossPath(size);
+      case MafiaRoleCardType.sheriff:
+        return _sheriffPath(size);
+      case MafiaRoleCardType.citizen:
+        return _personPath(size);
+    }
   }
-}
-
 
   Path _hostPath(Size size) {
     final w = size.width;
@@ -583,10 +532,7 @@ Path _iconPath(Size size, MafiaRoleCardType roleType) {
 
     return Path()
       ..addOval(
-        Rect.fromCircle(
-          center: Offset(w * 0.46, h * 0.46),
-          radius: w * 0.13,
-        ),
+        Rect.fromCircle(center: Offset(w * 0.46, h * 0.46), radius: w * 0.13),
       )
       ..moveTo(w * 0.56, h * 0.56)
       ..lineTo(w * 0.70, h * 0.70);
@@ -602,41 +548,42 @@ Path _iconPath(Size size, MafiaRoleCardType roleType) {
       ..moveTo(w * 0.34, h * 0.51)
       ..lineTo(w * 0.66, h * 0.51);
   }
+
   Path _sheriffPath(Size size) {
-  final w = size.width;
-  final h = size.height;
+    final w = size.width;
+    final h = size.height;
 
-  final path = Path();
+    final path = Path();
 
-  final centerX = w * 0.50;
-  final centerY = h * 0.52;
-  final outerRadius = w * 0.20;
-  final innerRadius = w * 0.085;
+    final centerX = w * 0.50;
+    final centerY = h * 0.52;
+    final outerRadius = w * 0.20;
+    final innerRadius = w * 0.085;
 
-  for (int i = 0; i < 12; i++) {
-    final angle = -math.pi / 2 + i * math.pi / 6;
-    final radius = i.isEven ? outerRadius : innerRadius;
+    for (int i = 0; i < 12; i++) {
+      final angle = -math.pi / 2 + i * math.pi / 6;
+      final radius = i.isEven ? outerRadius : innerRadius;
 
-    final x = centerX + math.cos(angle) * radius;
-    final y = centerY + math.sin(angle) * radius;
+      final x = centerX + math.cos(angle) * radius;
+      final y = centerY + math.sin(angle) * radius;
 
-    if (i == 0) {
-      path.moveTo(x, y);
-    } else {
-      path.lineTo(x, y);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
     }
+
+    path.close();
+
+    path.moveTo(w * 0.42, h * 0.52);
+    path.lineTo(w * 0.58, h * 0.52);
+
+    path.moveTo(w * 0.50, h * 0.44);
+    path.lineTo(w * 0.50, h * 0.60);
+
+    return path;
   }
-
-  path.close();
-
-  path.moveTo(w * 0.42, h * 0.52);
-  path.lineTo(w * 0.58, h * 0.52);
-
-  path.moveTo(w * 0.50, h * 0.44);
-  path.lineTo(w * 0.50, h * 0.60);
-
-  return path;
-}
 
   Path _personPath(Size size) {
     final w = size.width;
@@ -644,10 +591,7 @@ Path _iconPath(Size size, MafiaRoleCardType roleType) {
 
     return Path()
       ..addOval(
-        Rect.fromCircle(
-          center: Offset(w * 0.50, h * 0.43),
-          radius: w * 0.095,
-        ),
+        Rect.fromCircle(center: Offset(w * 0.50, h * 0.43), radius: w * 0.095),
       )
       ..moveTo(w * 0.34, h * 0.70)
       ..quadraticBezierTo(w * 0.50, h * 0.56, w * 0.66, h * 0.70);
@@ -662,9 +606,9 @@ Path _iconPath(Size size, MafiaRoleCardType roleType) {
       case MafiaRoleCardType.detective:
         return const Color(0xFF4DA3FF);
       case MafiaRoleCardType.doctor:
-        return const Color(0xFF55FF99);  
+        return const Color(0xFF55FF99);
       case MafiaRoleCardType.sheriff:
-      return const Color(0xFFFFD54F);
+        return const Color(0xFFFFD54F);
       case MafiaRoleCardType.citizen:
         return const Color(0xFFD8D8D8);
     }
@@ -683,14 +627,8 @@ class _CardBorderPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final goldPaint = Paint()
       ..shader = const LinearGradient(
-        colors: [
-          Color(0xFFFFF5B8),
-          Color(0xFFFFD95A),
-          Color(0xFF9D6A16),
-        ],
-      ).createShader(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-      )
+        colors: [Color(0xFFFFF5B8), Color(0xFFFFD95A), Color(0xFF9D6A16)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.1
       ..strokeCap = StrokeCap.round
@@ -711,48 +649,26 @@ class _CardBorderPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    final outerRect = Rect.fromLTWH(
-      10,
-      10,
-      size.width - 20,
-      size.height - 20,
-    );
+    final outerRect = Rect.fromLTWH(10, 10, size.width - 20, size.height - 20);
 
-    final innerRect = Rect.fromLTWH(
-      18,
-      18,
-      size.width - 36,
-      size.height - 36,
-    );
+    final innerRect = Rect.fromLTWH(18, 18, size.width - 36, size.height - 36);
 
     canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        outerRect,
-        const Radius.circular(22),
-      ),
+      RRect.fromRectAndRadius(outerRect, const Radius.circular(22)),
       softGoldPaint,
     );
 
     canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        outerRect,
-        const Radius.circular(22),
-      ),
+      RRect.fromRectAndRadius(outerRect, const Radius.circular(22)),
       goldPaint,
     );
 
     canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        innerRect,
-        const Radius.circular(17),
-      ),
+      RRect.fromRectAndRadius(innerRect, const Radius.circular(17)),
       thinPaint,
     );
 
-    void drawCorner({
-      required bool right,
-      required bool bottom,
-    }) {
+    void drawCorner({required bool right, required bool bottom}) {
       final x = right ? size.width - 30 : 30.0;
       final y = bottom ? size.height - 30 : 30.0;
 
@@ -761,12 +677,7 @@ class _CardBorderPainter extends CustomPainter {
 
       final path = Path()
         ..moveTo(x, y + sy * 26)
-        ..quadraticBezierTo(
-          x + sx * 2,
-          y + sy * 8,
-          x + sx * 18,
-          y + sy * 2,
-        )
+        ..quadraticBezierTo(x + sx * 2, y + sy * 8, x + sx * 18, y + sy * 2)
         ..moveTo(x, y + sy * 26)
         ..lineTo(x + sx * 10, y + sy * 18)
         ..moveTo(x + sx * 18, y + sy * 2)
@@ -789,11 +700,7 @@ class _CardBorderPainter extends CustomPainter {
 }
 
 class _CardButton extends StatelessWidget {
-  const _CardButton({
-    required this.text,
-    required this.onPressed,
-    this.icon,
-  });
+  const _CardButton({required this.text, required this.onPressed, this.icon});
 
   final String text;
   final VoidCallback onPressed;
@@ -813,10 +720,7 @@ class _CardButton extends StatelessWidget {
           foregroundColor: Colors.white,
           elevation: 0,
           shadowColor: Colors.transparent,
-          side: const BorderSide(
-            color: _CardColors.frame,
-            width: 1.8,
-          ),
+          side: const BorderSide(color: _CardColors.frame, width: 1.8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
@@ -826,11 +730,7 @@ class _CardButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[
-              Icon(
-                icon,
-                color: _CardColors.neonWhite,
-                size: small ? 20 : 22,
-              ),
+              Icon(icon, color: _CardColors.neonWhite, size: small ? 20 : 22),
               const SizedBox(width: 10),
             ],
             Flexible(
@@ -847,10 +747,7 @@ class _CardButton extends StatelessWidget {
                     letterSpacing: 1.4,
                     color: Colors.white,
                     shadows: const [
-                      Shadow(
-                        color: Colors.white,
-                        blurRadius: 5,
-                      ),
+                      Shadow(color: Colors.white, blurRadius: 5),
                       Shadow(
                         color: Colors.black,
                         blurRadius: 10,

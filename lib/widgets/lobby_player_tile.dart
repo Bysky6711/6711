@@ -6,11 +6,7 @@ import '../core/responsive.dart';
 import 'mafia_hat_icon.dart';
 
 class LobbyPlayerTile extends StatelessWidget {
-  const LobbyPlayerTile({
-    super.key,
-    required this.name,
-    required this.isHost,
-  });
+  const LobbyPlayerTile({super.key, required this.name, required this.isHost});
 
   final String name;
   final bool isHost;
@@ -38,10 +34,7 @@ class LobbyPlayerTile extends StatelessWidget {
             width: 34,
             child: Center(
               child: isHost
-                  ? const MafiaHatIcon(
-                      size: 24,
-                      color: AppColors.neonWhite,
-                    )
+                  ? const MafiaHatIcon(size: 24, color: AppColors.neonWhite)
                   : const Icon(
                       Icons.person_outline,
                       color: AppColors.neonWhite,

@@ -4,10 +4,7 @@ import '../core/app_colors.dart';
 import '../core/responsive.dart';
 
 class MafiaPanel extends StatelessWidget {
-  const MafiaPanel({
-    super.key,
-    required this.child,
-  });
+  const MafiaPanel({super.key, required this.child});
 
   final Widget child;
 
@@ -21,10 +18,7 @@ class MafiaPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.58),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: AppColors.frame,
-          width: 1.6,
-        ),
+        border: Border.all(color: AppColors.frame, width: 1.6),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.65),

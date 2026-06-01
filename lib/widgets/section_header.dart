@@ -21,11 +21,7 @@ class SectionHeader extends StatelessWidget {
     return Row(
       children: [
         if (showIcon) ...[
-          Icon(
-            icon,
-            color: AppColors.neonWhite,
-            size: 22,
-          ),
+          Icon(icon, color: AppColors.neonWhite, size: 22),
           const SizedBox(width: 10),
         ],
         Expanded(
@@ -39,10 +35,7 @@ class SectionHeader extends StatelessWidget {
               fontWeight: FontWeight.bold,
               letterSpacing: 1.4,
               shadows: const [
-                Shadow(
-                  color: Colors.white,
-                  blurRadius: 5,
-                ),
+                Shadow(color: Colors.white, blurRadius: 5),
                 Shadow(
                   color: Colors.black,
                   blurRadius: 10,

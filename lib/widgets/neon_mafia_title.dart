@@ -4,10 +4,7 @@ import '../core/app_colors.dart';
 import '../core/responsive.dart';
 
 class NeonMafiaTitle extends StatelessWidget {
-  const NeonMafiaTitle({
-    super.key,
-    this.fontSize = 92,
-  });
+  const NeonMafiaTitle({super.key, this.fontSize = 92});
 
   final double fontSize;
 
@@ -31,19 +28,9 @@ class NeonMafiaTitle extends StatelessWidget {
             color: AppColors.neonWhite,
             letterSpacing: letterSpacing,
             shadows: const [
-              Shadow(
-                color: Colors.white,
-                blurRadius: 3,
-              ),
-              Shadow(
-                color: AppColors.neonWhite,
-                blurRadius: 8,
-              ),
-              Shadow(
-                color: Colors.black,
-                blurRadius: 12,
-                offset: Offset(4, 4),
-              ),
+              Shadow(color: Colors.white, blurRadius: 3),
+              Shadow(color: AppColors.neonWhite, blurRadius: 8),
+              Shadow(color: Colors.black, blurRadius: 12, offset: Offset(4, 4)),
             ],
           ),
         ),

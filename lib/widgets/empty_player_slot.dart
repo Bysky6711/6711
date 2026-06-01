@@ -5,10 +5,7 @@ import '../core/app_colors.dart';
 import '../core/responsive.dart';
 
 class EmptyPlayerSlot extends StatelessWidget {
-  const EmptyPlayerSlot({
-    super.key,
-    required this.slotNumber,
-  });
+  const EmptyPlayerSlot({super.key, required this.slotNumber});
 
   final int slotNumber;
 
@@ -23,9 +20,7 @@ class EmptyPlayerSlot extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.32),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.frame.withValues(alpha: 0.55),
-        ),
+        border: Border.all(color: AppColors.frame.withValues(alpha: 0.55)),
       ),
       child: Row(
         children: [

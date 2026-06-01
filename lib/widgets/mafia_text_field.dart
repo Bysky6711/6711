@@ -41,31 +41,18 @@ class MafiaTextField extends StatelessWidget {
           letterSpacing: 1,
           shadows: mutedText
               ? null
-              : const [
-                  Shadow(
-                    color: Colors.white,
-                    blurRadius: 4,
-                  ),
-                ],
+              : const [Shadow(color: Colors.white, blurRadius: 4)],
         ),
-        hintStyle: TextStyle(
-          color: textColor.withValues(alpha: 0.55),
-        ),
+        hintStyle: TextStyle(color: textColor.withValues(alpha: 0.55)),
         filled: true,
         fillColor: Colors.black.withValues(alpha: 0.35),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(
-            color: AppColors.frame,
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: AppColors.frame, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(
-            color: AppColors.neonWhite,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: AppColors.neonWhite, width: 2),
         ),
       ),
     );

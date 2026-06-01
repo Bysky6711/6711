@@ -1,13 +1,6 @@
 import 'dart:math' as math;
 
-enum MafiaRoleCardType {
-  host,
-  mafia,
-  detective,
-  doctor,
-  sheriff,
-  citizen,
-}
+enum MafiaRoleCardType { host, mafia, detective, doctor, sheriff, citizen }
 
 class GameRoleDefinition {
   const GameRoleDefinition({
@@ -96,9 +89,7 @@ class GameRoles {
   }
 
   static Map<MafiaRoleCardType, int> defaultRoleCounts() {
-    return {
-      for (final role in configurable) role.type: role.defaultCount,
-    };
+    return {for (final role in configurable) role.type: role.defaultCount};
   }
 
   static int countOf(
@@ -131,11 +122,7 @@ class GameRoles {
     required int players,
     required Map<MafiaRoleCardType, int> roleCounts,
   }) {
-    return citizensCount(
-          players: players,
-          roleCounts: roleCounts,
-        ) >=
-        0;
+    return citizensCount(players: players, roleCounts: roleCounts) >= 0;
   }
 
   static List<MafiaRoleCardType> buildDeck({
@@ -152,10 +139,7 @@ class GameRoles {
       }
     }
 
-    final citizens = citizensCount(
-      players: players,
-      roleCounts: roleCounts,
-    );
+    final citizens = citizensCount(players: players, roleCounts: roleCounts);
 
     for (var i = 0; i < citizens; i++) {
       deck.add(MafiaRoleCardType.citizen);

@@ -4,10 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../core/responsive.dart';
 
 class HelpHint extends StatelessWidget {
-  const HelpHint({
-    super.key,
-    required this.text,
-  });
+  const HelpHint({super.key, required this.text});
 
   final String text;
 

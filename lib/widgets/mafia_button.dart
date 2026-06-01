@@ -35,10 +35,7 @@ class MafiaButton extends StatelessWidget {
           foregroundColor: Colors.white,
           elevation: 0,
           shadowColor: Colors.transparent,
-          side: const BorderSide(
-            color: AppColors.frame,
-            width: 1.8,
-          ),
+          side: const BorderSide(color: AppColors.frame, width: 1.8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
@@ -48,11 +45,7 @@ class MafiaButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[
-              Icon(
-                icon,
-                color: AppColors.neonWhite,
-                size: small ? 20 : 22,
-              ),
+              Icon(icon, color: AppColors.neonWhite, size: small ? 20 : 22),
               const SizedBox(width: 10),
             ],
             Flexible(
@@ -69,10 +62,7 @@ class MafiaButton extends StatelessWidget {
                     letterSpacing: 1.4,
                     color: Colors.white,
                     shadows: const [
-                      Shadow(
-                        color: Colors.white,
-                        blurRadius: 5,
-                      ),
+                      Shadow(color: Colors.white, blurRadius: 5),
                       Shadow(
                         color: Colors.black,
                         blurRadius: 10,
