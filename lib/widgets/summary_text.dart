@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../core/app_colors.dart';
 import '../core/responsive.dart';
 
 class SummaryText extends StatelessWidget {
@@ -26,7 +27,7 @@ class SummaryText extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: GoogleFonts.cormorantGaramond(
-            color: Colors.white70,
+            color: AppColors.mutedCream,
             fontSize: Responsive.isSmall(context) ? 17 : 19,
             fontStyle: FontStyle.italic,
           ),
@@ -41,11 +42,15 @@ class SummaryText extends StatelessWidget {
             softWrap: false,
             textAlign: TextAlign.right,
             style: GoogleFonts.cinzel(
-              color: valueColor ?? Colors.white,
+              color: valueColor ?? AppColors.neonWhite,
               fontSize: Responsive.isSmall(context) ? 15 : 17,
               fontWeight: FontWeight.bold,
-              shadows: const [
+              shadows: [
                 Shadow(
+                  color: AppColors.bloodGlow.withValues(alpha: 0.42),
+                  blurRadius: 6,
+                ),
+                const Shadow(
                   color: Colors.black,
                   blurRadius: 8,
                   offset: Offset(2, 2),

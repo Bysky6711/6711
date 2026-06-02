@@ -27,53 +27,92 @@ class MafiaButton extends StatelessWidget {
         Responsive.width(context) - (Responsive.horizontalPadding(context) * 2),
         380,
       ),
-      height: small ? 52 : 58,
+      height: small ? 50 : 56,
       child: ElevatedButton(
         onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black.withValues(alpha: 0.58),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shadowColor: Colors.transparent,
-          side: const BorderSide(color: AppColors.frame, width: 1.8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, color: AppColors.neonWhite, size: small ? 20 : 22),
-              const SizedBox(width: 10),
+        style:
+            ElevatedButton.styleFrom(
+              backgroundColor: AppColors.blackRed.withValues(alpha: 0.88),
+              foregroundColor: AppColors.neonWhite,
+              elevation: 0,
+              shadowColor: Colors.transparent,
+              side: BorderSide(
+                color: AppColors.frameBright.withValues(alpha: 0.88),
+                width: 1.6,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(17),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ).copyWith(
+              overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                if (states.contains(WidgetState.pressed)) {
+                  return AppColors.bloodGlow.withValues(alpha: 0.18);
+                }
+
+                if (states.contains(WidgetState.hovered)) {
+                  return AppColors.bloodGlow.withValues(alpha: 0.10);
+                }
+
+                return null;
+              }),
+            ),
+        child: Container(
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.bloodGlow.withValues(alpha: 0.12),
+                blurRadius: 16,
+              ),
             ],
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  text.toUpperCase(),
-                  maxLines: 1,
-                  softWrap: false,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.cinzel(
-                    fontSize: small ? 18 : 20,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.4,
-                    color: Colors.white,
-                    shadows: const [
-                      Shadow(color: Colors.white, blurRadius: 5),
-                      Shadow(
-                        color: Colors.black,
-                        blurRadius: 10,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  color: AppColors.neonWhite,
+                  size: small ? 19 : 21,
+                  shadows: [
+                    Shadow(
+                      color: AppColors.bloodGlow.withValues(alpha: 0.80),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 10),
+              ],
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    text.toUpperCase(),
+                    maxLines: 1,
+                    softWrap: false,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.cinzel(
+                      fontSize: small ? 17 : 19,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.3,
+                      color: AppColors.neonWhite,
+                      shadows: [
+                        Shadow(
+                          color: AppColors.bloodGlow.withValues(alpha: 0.75),
+                          blurRadius: 7,
+                        ),
+                        const Shadow(
+                          color: Colors.black,
+                          blurRadius: 10,
+                          offset: Offset(2, 2),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

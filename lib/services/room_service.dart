@@ -1,4 +1,5 @@
 import '../data/roles.dart';
+import '../models/game_phase.dart';
 import '../models/game_room.dart';
 
 abstract class RoomService {
@@ -19,6 +20,8 @@ abstract class RoomService {
   GameRoom startGame(GameRoom room);
 
   GameRoom resetToLobby(GameRoom room);
+
+  GameRoom changePhase({required GameRoom room, required GamePhase phase});
 
   String generateRoomCode();
 }

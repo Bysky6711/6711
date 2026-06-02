@@ -27,12 +27,28 @@ class MafiaBackground extends StatelessWidget {
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.96),
-                  Colors.black.withValues(alpha: 0.78),
-                  AppColors.deepRed.withValues(alpha: 0.78),
-                  AppColors.deepRed.withValues(alpha: 0.92),
+                  Colors.black.withValues(alpha: 0.98),
+                  AppColors.deepBlack.withValues(alpha: 0.94),
+                  AppColors.deepRed.withValues(alpha: 0.82),
+                  AppColors.bloodRedDark.withValues(alpha: 0.66),
                 ],
-                stops: const [0.00, 0.36, 0.72, 1.00],
+                stops: const [0.00, 0.38, 0.74, 1.00],
+              ),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.topCenter,
+                radius: 1.15,
+                colors: [
+                  AppColors.bloodRed.withValues(alpha: 0.20),
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.42),
+                ],
+                stops: const [0.00, 0.48, 1.00],
               ),
             ),
           ),

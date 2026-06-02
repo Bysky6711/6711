@@ -1,4 +1,5 @@
 import '../data/roles.dart';
+import 'game_phase.dart';
 import 'game_player.dart';
 import 'room_status.dart';
 
@@ -11,6 +12,7 @@ class GameRoom {
     required this.roleCounts,
     required this.players,
     required this.status,
+    required this.phase,
     required this.createdAt,
   });
 
@@ -21,6 +23,7 @@ class GameRoom {
   final Map<MafiaRoleCardType, int> roleCounts;
   final List<GamePlayer> players;
   final RoomStatus status;
+  final GamePhase phase;
   final DateTime createdAt;
 
   int get currentPlayersCount => players.length;
@@ -28,6 +31,8 @@ class GameRoom {
   bool get isWaiting => status == RoomStatus.waiting;
 
   bool get isInProgress => status == RoomStatus.inProgress;
+
+  bool get isFinished => status == RoomStatus.finished;
 
   bool get isFull => currentPlayersCount >= maxPlayers;
 
@@ -79,6 +84,7 @@ class GameRoom {
     Map<MafiaRoleCardType, int>? roleCounts,
     List<GamePlayer>? players,
     RoomStatus? status,
+    GamePhase? phase,
     DateTime? createdAt,
   }) {
     return GameRoom(
@@ -89,6 +95,7 @@ class GameRoom {
       roleCounts: roleCounts ?? this.roleCounts,
       players: players ?? this.players,
       status: status ?? this.status,
+      phase: phase ?? this.phase,
       createdAt: createdAt ?? this.createdAt,
     );
   }

@@ -22,7 +22,7 @@ class MafiaTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = mutedText ? AppColors.fieldGrey : Colors.white;
+    final textColor = mutedText ? AppColors.mutedCream : AppColors.neonWhite;
 
     return TextField(
       controller: controller,
@@ -39,20 +39,26 @@ class MafiaTextField extends StatelessWidget {
           color: textColor,
           fontWeight: FontWeight.bold,
           letterSpacing: 1,
-          shadows: mutedText
-              ? null
-              : const [Shadow(color: Colors.white, blurRadius: 4)],
+          shadows: [
+            Shadow(
+              color: AppColors.bloodGlow.withValues(alpha: 0.35),
+              blurRadius: 5,
+            ),
+          ],
         ),
-        hintStyle: TextStyle(color: textColor.withValues(alpha: 0.55)),
+        hintStyle: TextStyle(color: textColor.withValues(alpha: 0.48)),
         filled: true,
-        fillColor: Colors.black.withValues(alpha: 0.35),
+        fillColor: AppColors.blackRed.withValues(alpha: 0.62),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.frame, width: 1.5),
+          borderSide: BorderSide(
+            color: AppColors.frame.withValues(alpha: 0.82),
+            width: 1.4,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.neonWhite, width: 2),
+          borderSide: const BorderSide(color: AppColors.frameBright, width: 2),
         ),
       ),
     );

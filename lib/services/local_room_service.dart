@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../data/roles.dart';
+import '../models/game_phase.dart';
 import '../models/game_player.dart';
 import '../models/game_room.dart';
 import '../models/room_status.dart';
@@ -26,6 +27,7 @@ class LocalRoomService implements RoomService {
       roleCounts: Map<MafiaRoleCardType, int>.from(roleCounts),
       players: const [],
       status: RoomStatus.waiting,
+      phase: GamePhase.setup,
       createdAt: DateTime.now(),
     );
   }
@@ -122,6 +124,7 @@ class LocalRoomService implements RoomService {
     return room.copyWith(
       players: updatedPlayers,
       status: RoomStatus.inProgress,
+      phase: GamePhase.setup,
     );
   }
 
@@ -134,6 +137,17 @@ class LocalRoomService implements RoomService {
     return room.copyWith(
       players: playersWithoutRoles,
       status: RoomStatus.waiting,
+      phase: GamePhase.setup,
+    );
+  }
+
+  @override
+  GameRoom changePhase({required GameRoom room, required GamePhase phase}) {
+    return room.copyWith(
+      phase: phase,
+      status: phase == GamePhase.finished
+          ? RoomStatus.finished
+          : RoomStatus.inProgress,
     );
   }
 
