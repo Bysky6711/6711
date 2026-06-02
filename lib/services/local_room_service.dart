@@ -4,11 +4,13 @@ import '../data/roles.dart';
 import '../models/game_player.dart';
 import '../models/game_room.dart';
 import '../models/room_status.dart';
+import 'room_service.dart';
 
-class LocalRoomService {
-  const LocalRoomService._();
+class LocalRoomService implements RoomService {
+  const LocalRoomService();
 
-  static GameRoom createRoom({
+  @override
+  GameRoom createRoom({
     required String hostName,
     required int maxPlayers,
     required Map<MafiaRoleCardType, int> roleCounts,
@@ -28,10 +30,8 @@ class LocalRoomService {
     );
   }
 
-  static GameRoom addPlayer({
-    required GameRoom room,
-    required String playerName,
-  }) {
+  @override
+  GameRoom addPlayer({required GameRoom room, required String playerName}) {
     if (!room.isWaiting) {
       throw Exception('Nie można dołączyć. Gra już wystartowała.');
     }
@@ -55,10 +55,8 @@ class LocalRoomService {
     return room.copyWith(players: [...room.players, player]);
   }
 
-  static GameRoom removePlayer({
-    required GameRoom room,
-    required String playerId,
-  }) {
+  @override
+  GameRoom removePlayer({required GameRoom room, required String playerId}) {
     if (!room.isWaiting) {
       throw Exception('Nie można usunąć gracza po rozpoczęciu gry.');
     }
@@ -70,11 +68,13 @@ class LocalRoomService {
     return room.copyWith(players: updatedPlayers);
   }
 
-  static bool canStartGame(GameRoom room) {
+  @override
+  bool canStartGame(GameRoom room) {
     return room.canStartGame;
   }
 
-  static String? startGameError(GameRoom room) {
+  @override
+  String? startGameError(GameRoom room) {
     if (!room.isWaiting) {
       return 'Gra już została rozpoczęta.';
     }
@@ -94,7 +94,8 @@ class LocalRoomService {
     return null;
   }
 
-  static GameRoom startGame(GameRoom room) {
+  @override
+  GameRoom startGame(GameRoom room) {
     final error = startGameError(room);
 
     if (error != null) {
@@ -124,7 +125,8 @@ class LocalRoomService {
     );
   }
 
-  static GameRoom resetToLobby(GameRoom room) {
+  @override
+  GameRoom resetToLobby(GameRoom room) {
     final playersWithoutRoles = room.players.map((player) {
       return player.copyWith(clearRole: true);
     }).toList();
@@ -135,7 +137,8 @@ class LocalRoomService {
     );
   }
 
-  static String generateRoomCode() {
+  @override
+  String generateRoomCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     final random = math.Random.secure();
 
@@ -145,7 +148,7 @@ class LocalRoomService {
     ).join();
   }
 
-  static String _generateId({required String prefix}) {
+  String _generateId({required String prefix}) {
     final timestamp = DateTime.now().microsecondsSinceEpoch;
     final random = math.Random().nextInt(999999);
 

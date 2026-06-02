@@ -9,6 +9,7 @@ import '../models/game_room.dart';
 import '../models/role_summary.dart';
 import '../models/room_status.dart';
 import '../services/local_room_service.dart';
+import '../services/room_service.dart';
 import '../widgets/shared_widgets.dart';
 import 'started_game_screen.dart';
 
@@ -28,6 +29,8 @@ class LobbyScreen extends StatefulWidget {
 
 class _LobbyScreenState extends State<LobbyScreen> {
   late GameRoom room;
+
+  final RoomService roomService = const LocalRoomService();
 
   int testPlayerNumber = 1;
 
@@ -52,7 +55,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   void addTestPlayer() {
     try {
-      final updatedRoom = LocalRoomService.addPlayer(
+      final updatedRoom = roomService.addPlayer(
         room: room,
         playerName: 'Gracz $testPlayerNumber',
       );
@@ -67,7 +70,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
   }
 
   Future<void> startGame() async {
-    final error = LocalRoomService.startGameError(room);
+    final error = roomService.startGameError(room);
 
     if (error != null) {
       showMessage(error);
@@ -75,7 +78,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
     }
 
     try {
-      final startedRoom = LocalRoomService.startGame(room);
+      final startedRoom = roomService.startGame(room);
 
       setState(() {
         room = startedRoom;

@@ -7,6 +7,7 @@ import '../data/roles.dart';
 import '../models/role_setting.dart';
 import '../models/role_summary.dart';
 import '../services/local_room_service.dart';
+import '../services/room_service.dart';
 import '../widgets/shared_widgets.dart';
 import 'lobby_screen.dart';
 
@@ -19,6 +20,8 @@ class HostGameScreen extends StatefulWidget {
 
 class _HostGameScreenState extends State<HostGameScreen> {
   final TextEditingController hostNameController = TextEditingController();
+
+  final RoomService roomService = const LocalRoomService();
 
   int players = 6;
 
@@ -110,7 +113,7 @@ class _HostGameScreenState extends State<HostGameScreen> {
         ? 'Gospodarz'
         : hostNameController.text.trim();
 
-    final room = LocalRoomService.createRoom(
+    final room = roomService.createRoom(
       hostName: hostName,
       maxPlayers: players,
       roleCounts: roleCounts,
