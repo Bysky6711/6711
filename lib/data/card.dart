@@ -258,31 +258,29 @@ class _FullBackCardImage extends StatelessWidget {
           fit: BoxFit.cover,
           alignment: Alignment.center,
         ),
-
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: RadialGradient(
               center: Alignment.center,
-              radius: 0.92,
+              radius: 0.98,
               colors: [
                 Colors.transparent,
                 Colors.black.withValues(alpha: 0.10),
-                Colors.black.withValues(alpha: 0.34),
+                Colors.black.withValues(alpha: 0.38),
               ],
               stops: const [0.45, 0.78, 1.00],
             ),
           ),
         ),
-
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withValues(alpha: 0.10),
+                Colors.white.withValues(alpha: 0.05),
                 Colors.transparent,
-                Colors.black.withValues(alpha: 0.12),
+                Colors.black.withValues(alpha: 0.16),
               ],
               stops: const [0.00, 0.42, 1.00],
             ),
@@ -351,17 +349,7 @@ class _CardFrame extends StatelessWidget {
       width: cardWidth,
       height: cardHeight,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(34),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFFFF4B8).withValues(alpha: 0.98),
-            const Color(0xFF9E7A2E).withValues(alpha: 0.98),
-            const Color(0xFFFFE8A3).withValues(alpha: 0.96),
-            const Color(0xFF3D2412).withValues(alpha: 1.00),
-          ],
-        ),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.82),
@@ -369,73 +357,35 @@ class _CardFrame extends StatelessWidget {
             offset: const Offset(0, 18),
           ),
           BoxShadow(
-            color: const Color(0xFFFFE8A3).withValues(alpha: 0.16),
-            blurRadius: 26,
+            color: const Color(0xFFFF2525).withValues(alpha: 0.22),
+            blurRadius: 28,
+            spreadRadius: 1,
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(31),
-            color: const Color(0xFF130705),
-            border: Border.all(
-              color: Colors.black.withValues(alpha: 0.92),
-              width: 2,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(7),
-            child: Container(
-              clipBehavior: Clip.antiAlias,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            child,
+
+            // Delikatny zewnętrzny cień na brzegach, bez zasłaniania ornamentów.
+            DecoratedBox(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(25),
-                color: const Color(0xFF210A07),
-                border: Border.all(
-                  color: const Color(0xFFFFF0B0).withValues(alpha: 0.78),
-                  width: 1.4,
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: 1.03,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.08),
+                    Colors.black.withValues(alpha: 0.32),
+                  ],
+                  stops: const [0.55, 0.82, 1.00],
                 ),
               ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        center: Alignment.topCenter,
-                        radius: 1.25,
-                        colors: [
-                          _CardColors.deepRed.withValues(alpha: 0.62),
-                          Colors.black.withValues(alpha: 0.42),
-                          Colors.black.withValues(alpha: 0.88),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  child,
-
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          blurRadius: 18,
-                          spreadRadius: -4,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  IgnorePointer(
-                    child: CustomPaint(painter: _CardBorderPainter()),
-                  ),
-                ],
-              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -627,7 +577,7 @@ class _CardBorderPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final goldPaint = Paint()
       ..shader = const LinearGradient(
-        colors: [Color(0xFFFFF5B8), Color(0xFFFFD95A), Color(0xFF9D6A16)],
+        colors: [Color(0xFFFF3A3A), Color(0xFFB90D0D), Color(0xFF4A0505)],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.1
@@ -635,7 +585,7 @@ class _CardBorderPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round;
 
     final softGoldPaint = Paint()
-      ..color = const Color(0xFFFFE27A).withValues(alpha: 0.30)
+      ..color = const Color(0xFFFF2525).withValues(alpha: 0.26)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5.5
       ..strokeCap = StrokeCap.round

@@ -32,10 +32,10 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
 
   _HostPanelTab selectedTab = _HostPanelTab.phases;
 
-  final List<_TableCardPlay> playedCards = [];
+  final List<_TableCardPlay> playedcard = [];
 
   int nextTestCardNumber = 1;
-  int unreadCouncilCards = 0;
+  int unreadCouncilcard = 0;
 
   @override
   void initState() {
@@ -85,7 +85,7 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
     final player = room.players[playerIndex];
 
     setState(() {
-      playedCards.add(
+      playedcard.add(
         _TableCardPlay(
           playerName: player.name,
           cardName: 'Karta $nextTestCardNumber',
@@ -95,7 +95,7 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
       nextTestCardNumber++;
 
       if (selectedTab != _HostPanelTab.council) {
-        unreadCouncilCards++;
+        unreadCouncilcard++;
       }
     });
   }
@@ -199,13 +199,13 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
 
                           _HostPanelTabs(
                             selectedTab: selectedTab,
-                            councilBadgeCount: unreadCouncilCards,
+                            councilBadgeCount: unreadCouncilcard,
                             onChanged: (tab) {
                               setState(() {
                                 selectedTab = tab;
 
                                 if (tab == _HostPanelTab.council) {
-                                  unreadCouncilCards = 0;
+                                  unreadCouncilcard = 0;
                                 }
                               });
                             },
@@ -466,7 +466,7 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
                 showIcon: false,
               ),
               const SizedBox(height: 14),
-              _CouncilTableArea(playedCards: playedCards),
+              _CouncilTableArea(playedcard: playedcard),
               const SizedBox(height: 14),
               Center(
                 child: MafiaButton(
@@ -995,9 +995,9 @@ class _DealerPanel extends StatelessWidget {
 }
 
 class _CouncilTableArea extends StatelessWidget {
-  const _CouncilTableArea({required this.playedCards});
+  const _CouncilTableArea({required this.playedcard});
 
-  final List<_TableCardPlay> playedCards;
+  final List<_TableCardPlay> playedcard;
 
   void showLargeCard(BuildContext context, _TableCardPlay card) {
     showGeneralDialog(
@@ -1056,7 +1056,7 @@ class _CouncilTableArea extends StatelessWidget {
           ),
         ],
       ),
-      child: playedCards.isEmpty
+      child: playedcard.isEmpty
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 18),
@@ -1075,7 +1075,7 @@ class _CouncilTableArea extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               alignment: WrapAlignment.center,
-              children: playedCards.map((card) {
+              children: playedcard.map((card) {
                 return _BlankPlayedCard(
                   cardName: card.cardName,
                   playerName: card.playerName,
@@ -1094,23 +1094,25 @@ class _BlankPlayedCard extends StatefulWidget {
     required this.onTap,
   });
 
+  static const String cardBackPath = 'assets/images/card/card_back_blue.jpg';
+
   final String cardName;
   final String playerName;
   final VoidCallback onTap;
 
   @override
-  State<_BlankPlayedCard> createState() => _BlankPlayedCardState();
+  State<_BlankPlayedCard> createState() => _BlankPlayedcardtate();
 }
 
-class _BlankPlayedCardState extends State<_BlankPlayedCard> {
+class _BlankPlayedcardtate extends State<_BlankPlayedCard> {
   bool hovered = false;
 
   @override
   Widget build(BuildContext context) {
     final small = Responsive.isSmall(context);
 
-    final width = small ? 72.0 : 84.0;
-    final height = width * 1.34;
+    final cardWidth = small ? 70.0 : 82.0;
+    final cardHeight = cardWidth * 1.48;
 
     return MouseRegion(
       onEnter: (_) {
@@ -1126,89 +1128,83 @@ class _BlankPlayedCardState extends State<_BlankPlayedCard> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedScale(
-          scale: hovered ? 1.08 : 1.0,
+          scale: hovered ? 1.07 : 1.0,
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOut,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            curve: Curves.easeOutCubic,
-            width: width,
-            height: height,
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(13),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFBFD7FF).withValues(alpha: 0.98),
-                  const Color(0xFF2F7CFF).withValues(alpha: 0.96),
-                  const Color(0xFF06172F).withValues(alpha: 0.98),
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.55),
-                  blurRadius: hovered ? 16 : 9,
-                  offset: Offset(0, hovered ? 8 : 5),
-                ),
-                if (hovered)
-                  BoxShadow(
-                    color: const Color(0xFF5FA8FF).withValues(alpha: 0.34),
-                    blurRadius: 18,
-                  ),
-              ],
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: const Color(0xFF071B36),
-                border: Border.all(
-                  color: const Color(0xFFD9EAFF).withValues(alpha: 0.60),
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.style_rounded,
-                    color: const Color(0xFFD9EAFF),
-                    size: small ? 20 : 24,
-                  ),
-                  const SizedBox(height: 5),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: Text(
-                      widget.cardName.toUpperCase(),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.cinzel(
-                        color: Colors.white,
-                        fontSize: small ? 8.5 : 9.5,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.4,
-                      ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOutCubic,
+                width: cardWidth,
+                height: cardHeight,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.black,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.62),
+                      blurRadius: hovered ? 16 : 9,
+                      offset: Offset(0, hovered ? 8 : 5),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      widget.playerName,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.cormorantGaramond(
-                        color: Colors.white70,
-                        fontSize: small ? 10 : 11,
-                        fontStyle: FontStyle.italic,
+                    if (hovered)
+                      BoxShadow(
+                        color: AppColors.bloodGlow.withValues(alpha: 0.30),
+                        blurRadius: 18,
                       ),
-                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        _BlankPlayedCard.cardBackPath,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                      ),
+
+                      // Bardzo delikatne przyciemnienie brzegów.
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            center: Alignment.center,
+                            radius: 1.02,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.06),
+                              Colors.black.withValues(alpha: 0.28),
+                            ],
+                            stops: const [0.55, 0.82, 1.00],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+
+              const SizedBox(height: 5),
+
+              SizedBox(
+                width: cardWidth + 16,
+                child: Text(
+                  widget.playerName,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.cormorantGaramond(
+                    color: AppColors.mutedCream,
+                    fontSize: small ? 10.5 : 12,
+                    fontWeight: FontWeight.w700,
+                    fontStyle: FontStyle.italic,
+                    shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1222,13 +1218,15 @@ class _LargePlayedCardOverlay extends StatelessWidget {
     required this.playerName,
   });
 
+  static const String cardBackPath = 'assets/images/card/card_back_blue.jpg';
+
   final String cardName;
   final String playerName;
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final cardWidth = width < 390 ? width * 0.74 : 310.0;
+    final cardWidth = width < 390 ? width * 0.72 : 300.0;
     final cardHeight = cardWidth * 1.48;
 
     return Material(
@@ -1238,7 +1236,7 @@ class _LargePlayedCardOverlay extends StatelessWidget {
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 4.5, sigmaY: 4.5),
-              child: Container(color: Colors.black.withValues(alpha: 0.28)),
+              child: Container(color: Colors.black.withValues(alpha: 0.38)),
             ),
           ),
 
@@ -1252,236 +1250,144 @@ class _LargePlayedCardOverlay extends StatelessWidget {
           Center(
             child: GestureDetector(
               onTap: () {},
-              child: Container(
-                width: cardWidth,
-                height: cardHeight,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(34),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFFBFD7FF).withValues(alpha: 0.98),
-                      const Color(0xFF2F7CFF).withValues(alpha: 0.96),
-                      const Color(0xFF06172F).withValues(alpha: 1.00),
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.82),
-                      blurRadius: 30,
-                      offset: const Offset(0, 18),
-                    ),
-                    BoxShadow(
-                      color: const Color(0xFF5FA8FF).withValues(alpha: 0.22),
-                      blurRadius: 30,
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Container(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: cardWidth,
+                    height: cardHeight,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(31),
-                      color: const Color(0xFF041022),
-                      border: Border.all(
-                        color: Colors.black.withValues(alpha: 0.88),
-                        width: 2,
+                      borderRadius: BorderRadius.circular(28),
+                      color: Colors.black,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.86),
+                          blurRadius: 34,
+                          offset: const Offset(0, 18),
+                        ),
+                        BoxShadow(
+                          color: AppColors.bloodGlow.withValues(alpha: 0.26),
+                          blurRadius: 34,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.asset(
+                            cardBackPath,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                          ),
+
+                          // Tylko subtelne światło, zero nachodzących paneli.
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(
+                                center: Alignment.center,
+                                radius: 1.04,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.08),
+                                  Colors.black.withValues(alpha: 0.34),
+                                ],
+                                stops: const [0.55, 0.82, 1.00],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(25),
-                          color: const Color(0xFF071B36),
-                          border: Border.all(
-                            color: const Color(
-                              0xFFD9EAFF,
-                            ).withValues(alpha: 0.76),
-                            width: 1.4,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Container(
+                    width: cardWidth,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkPanel.withValues(alpha: 0.88),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: AppColors.frameBright.withValues(alpha: 0.70),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                        BoxShadow(
+                          color: AppColors.bloodGlow.withValues(alpha: 0.16),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          cardName.toUpperCase(),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.cinzel(
+                            color: AppColors.neonWhite,
+                            fontSize: width < 390 ? 22 : 26,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.4,
+                            shadows: [
+                              Shadow(
+                                color: AppColors.bloodGlow.withValues(
+                                  alpha: 0.62,
+                                ),
+                                blurRadius: 7,
+                              ),
+                            ],
                           ),
                         ),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            DecoratedBox(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(25),
-                                gradient: RadialGradient(
-                                  center: Alignment.topCenter,
-                                  radius: 1.20,
-                                  colors: [
-                                    const Color(
-                                      0xFF2F7CFF,
-                                    ).withValues(alpha: 0.42),
-                                    const Color(
-                                      0xFF071B36,
-                                    ).withValues(alpha: 0.86),
-                                    Colors.black.withValues(alpha: 0.72),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                            Positioned.fill(
-                              child: CustomPaint(
-                                painter: _BlueCardBorderPainter(),
-                              ),
-                            ),
-
-                            Padding(
-                              padding: const EdgeInsets.all(22),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.style_rounded,
-                                    color: const Color(0xFFD9EAFF),
-                                    size: width < 390 ? 64 : 74,
-                                  ),
-                                  const SizedBox(height: 22),
-                                  Text(
-                                    cardName.toUpperCase(),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.cinzel(
-                                      color: Colors.white,
-                                      fontSize: width < 390 ? 28 : 34,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.8,
-                                      shadows: const [
-                                        Shadow(
-                                          color: Colors.white,
-                                          blurRadius: 5,
-                                        ),
-                                        Shadow(
-                                          color: Colors.black,
-                                          blurRadius: 12,
-                                          offset: Offset(3, 3),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    playerName,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.cormorantGaramond(
-                                      color: Colors.white70,
-                                      fontSize: width < 390 ? 24 : 28,
-                                      fontWeight: FontWeight.w700,
-                                      fontStyle: FontStyle.italic,
-                                      letterSpacing: 0.6,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 28),
-                                  Text(
-                                    'Dotknij poza kartą, aby zamknąć',
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.cormorantGaramond(
-                                      color: Colors.white38,
-                                      fontSize: width < 390 ? 15 : 17,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 6),
+                        Text(
+                          playerName,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.cormorantGaramond(
+                            color: AppColors.mutedCream,
+                            fontSize: width < 390 ? 18 : 21,
+                            fontWeight: FontWeight.w700,
+                            fontStyle: FontStyle.italic,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-                ),
+
+                  const SizedBox(height: 12),
+
+                  Text(
+                    'Dotknij poza kartą, aby zamknąć',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.cormorantGaramond(
+                      color: Colors.white38,
+                      fontSize: width < 390 ? 14 : 16,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
       ),
     );
-  }
-}
-
-class _BlueCardBorderPainter extends CustomPainter {
-  const _BlueCardBorderPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final mainPaint = Paint()
-      ..shader = const LinearGradient(
-        colors: [Color(0xFFE7F2FF), Color(0xFF6EA8FF), Color(0xFF1D4D9A)],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final glowPaint = Paint()
-      ..color = const Color(0xFF6EA8FF).withValues(alpha: 0.30)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5.0
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-
-    final thinPaint = Paint()
-      ..color = const Color(0xFFD9EAFF).withValues(alpha: 0.52)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.9
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final outerRect = Rect.fromLTWH(10, 10, size.width - 20, size.height - 20);
-
-    final innerRect = Rect.fromLTWH(18, 18, size.width - 36, size.height - 36);
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(outerRect, const Radius.circular(22)),
-      glowPaint,
-    );
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(outerRect, const Radius.circular(22)),
-      mainPaint,
-    );
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(innerRect, const Radius.circular(17)),
-      thinPaint,
-    );
-
-    void drawCorner({required bool right, required bool bottom}) {
-      final x = right ? size.width - 30 : 30.0;
-      final y = bottom ? size.height - 30 : 30.0;
-
-      final sx = right ? -1.0 : 1.0;
-      final sy = bottom ? -1.0 : 1.0;
-
-      final path = Path()
-        ..moveTo(x, y + sy * 26)
-        ..quadraticBezierTo(x + sx * 2, y + sy * 8, x + sx * 18, y + sy * 2)
-        ..moveTo(x, y + sy * 26)
-        ..lineTo(x + sx * 10, y + sy * 18)
-        ..moveTo(x + sx * 18, y + sy * 2)
-        ..lineTo(x + sx * 26, y);
-
-      canvas.drawPath(path, glowPaint);
-      canvas.drawPath(path, mainPaint);
-    }
-
-    drawCorner(right: false, bottom: false);
-    drawCorner(right: true, bottom: false);
-    drawCorner(right: false, bottom: true);
-    drawCorner(right: true, bottom: true);
-  }
-
-  @override
-  bool shouldRepaint(covariant _BlueCardBorderPainter oldDelegate) {
-    return false;
   }
 }
 
