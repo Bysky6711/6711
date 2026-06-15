@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
 import '../core/app_colors.dart';
 import '../core/responsive.dart';
+import 'premium/premium_motion.dart';
 
 class ScreenHeader extends StatelessWidget {
   const ScreenHeader({
@@ -24,35 +23,24 @@ class ScreenHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = largeIcon ? 34.0 : 23.0;
+    final iconSize = largeIcon ? 34.0 : 24.0;
 
     return Row(
       children: [
-        InkWell(
+        PressableScale(
           onTap: onBack,
-          borderRadius: BorderRadius.circular(12),
-          child: const Padding(
-            padding: EdgeInsets.all(8),
+          child: const SizedBox(
+            width: 44,
+            height: 44,
             child: Icon(
               Icons.arrow_back_ios_new_rounded,
-              color: AppColors.neonWhite,
+              color: AppColors.white,
               size: 21,
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        if (showIcon)
-          Icon(
-            icon,
-            color: AppColors.neonWhite,
-            size: iconSize,
-            shadows: [
-              Shadow(
-                color: AppColors.bloodGlow.withValues(alpha: 0.80),
-                blurRadius: 8,
-              ),
-            ],
-          ),
+        const SizedBox(width: 6),
+        if (showIcon) Icon(icon, color: AppColors.white, size: iconSize),
         if (showIcon && showTitle) const SizedBox(width: 10),
         if (showTitle)
           Expanded(
@@ -60,20 +48,16 @@ class ScreenHeader extends StatelessWidget {
               title.toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.cinzel(
-                color: AppColors.neonWhite,
-                fontSize: Responsive.isSmall(context) ? 23 : 29,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.8,
-                shadows: [
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: Responsive.isSmall(context) ? 22 : 28,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+                shadows: const [
                   Shadow(
-                    color: AppColors.bloodGlow.withValues(alpha: 0.72),
-                    blurRadius: 8,
-                  ),
-                  const Shadow(
-                    color: Colors.black,
-                    blurRadius: 12,
-                    offset: Offset(3, 3),
+                    color: AppColors.shadow,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),

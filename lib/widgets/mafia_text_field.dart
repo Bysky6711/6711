@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
 import '../core/app_colors.dart';
 import '../core/responsive.dart';
 
@@ -22,43 +20,35 @@ class MafiaTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = mutedText ? AppColors.mutedCream : AppColors.neonWhite;
-
     return TextField(
       controller: controller,
       textCapitalization: textCapitalization,
-      style: GoogleFonts.cinzel(
-        color: textColor,
+      style: TextStyle(
+        color: AppColors.white,
         fontSize: Responsive.isSmall(context) ? 16 : 18,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w800,
       ),
       decoration: InputDecoration(
         labelText: label.toUpperCase(),
         hintText: hint,
-        labelStyle: GoogleFonts.cinzel(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1,
-          shadows: [
-            Shadow(
-              color: AppColors.bloodGlow.withValues(alpha: 0.35),
-              blurRadius: 5,
-            ),
-          ],
+        labelStyle: TextStyle(
+          color: AppColors.white.withValues(alpha: 0.78),
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.8,
         ),
-        hintStyle: TextStyle(color: textColor.withValues(alpha: 0.48)),
+        hintStyle: TextStyle(
+          color: AppColors.white.withValues(alpha: 0.42),
+          fontWeight: FontWeight.w700,
+        ),
         filled: true,
-        fillColor: AppColors.blackRed.withValues(alpha: 0.62),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(
-            color: AppColors.frame.withValues(alpha: 0.82),
-            width: 1.4,
-          ),
+        fillColor: AppColors.glassDark,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.frameBright, width: 2),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.white, width: 1.4),
         ),
       ),
     );

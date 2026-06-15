@@ -1,24 +1,19 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
+import '../chat/mafia_chat_screen.dart';
 import '../core/app_colors.dart';
 import '../core/responsive.dart';
 import '../data/card.dart';
 import '../data/roles.dart';
 import '../models/game_phase.dart';
 import '../models/game_room.dart';
-import '../models/role_summary.dart';
 import '../services/local_room_service.dart';
 import '../services/room_service.dart';
+import '../ui_system/mafia_ios_system.dart';
 import '../widgets/shared_widgets.dart';
-
-enum _HostPanelTab { roles, tasks, council, phases }
 
 class StartedGameScreen extends StatefulWidget {
   const StartedGameScreen({super.key, required this.room});
-
   final GameRoom room;
 
   @override
@@ -27,15 +22,7 @@ class StartedGameScreen extends StatefulWidget {
 
 class _StartedGameScreenState extends State<StartedGameScreen> {
   late GameRoom room;
-
   final RoomService roomService = const LocalRoomService();
-
-  _HostPanelTab selectedTab = _HostPanelTab.phases;
-
-  final List<_TableCardPlay> playedcard = [];
-
-  int nextTestCardNumber = 1;
-  int unreadCouncilcard = 0;
 
   @override
   void initState() {
@@ -43,1573 +30,267 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
     room = widget.room;
   }
 
-  void openHostCard(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            const RoleRevealScreen(roleType: MafiaRoleCardType.host),
-      ),
-    );
-  }
-
-  void openPlayerCard(BuildContext context, int playerIndex) {
-    final player = room.players[playerIndex];
-    final role = player.role;
-
-    if (role == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ten gracz nie ma jeszcze przypisanej roli.'),
-        ),
-      );
-      return;
-    }
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => RoleRevealScreen(roleType: role)),
-    );
-  }
-
   void changePhase(GamePhase phase) {
-    setState(() {
-      room = roomService.changePhase(room: room, phase: phase);
-    });
+    setState(() => room = roomService.changePhase(room: room, phase: phase));
   }
 
-  void addTestPlayedCard() {
-    if (room.players.isEmpty) return;
-
-    final playerIndex = (nextTestCardNumber - 1) % room.players.length;
-    final player = room.players[playerIndex];
-
-    setState(() {
-      playedcard.add(
-        _TableCardPlay(
-          playerName: player.name,
-          cardName: 'Karta $nextTestCardNumber',
-        ),
-      );
-
-      nextTestCardNumber++;
-
-      if (selectedTab != _HostPanelTab.council) {
-        unreadCouncilcard++;
-      }
-    });
-  }
-
-  String phaseName(GamePhase phase) {
-    switch (phase) {
-      case GamePhase.setup:
-        return 'Przygotowanie';
-      case GamePhase.day:
-        return 'Dzień';
-      case GamePhase.night:
-        return 'Noc';
-      case GamePhase.voting:
-        return 'Głosowanie';
-      case GamePhase.finished:
-        return 'Koniec gry';
-    }
-  }
-
-  String phaseDescription(GamePhase phase) {
-    switch (phase) {
-      case GamePhase.setup:
-        return 'Gospodarz decyduje, kiedy rozpocząć pierwszą część gry.';
-      case GamePhase.day:
-        return 'Trwa dzień. Gracze mogą rozmawiać, analizować i zagrywać karty dnia.';
-      case GamePhase.night:
-        return 'Trwa noc. Gospodarz prowadzi działania nocne i pilnuje kolejności wydarzeń.';
-      case GamePhase.voting:
-        return 'Trwa głosowanie. Gospodarz obserwuje głosy i decyduje o zakończeniu etapu.';
-      case GamePhase.finished:
-        return 'Gra została zakończona.';
-    }
-  }
-
-  List<RoleSummary> currentRoleSummary() {
-    final counts = <MafiaRoleCardType, int>{};
-
-    for (final role in GameRoles.configurable) {
-      counts[role.type] = 0;
-    }
-
-    counts[MafiaRoleCardType.citizen] = 0;
-
-    for (final player in room.players) {
-      final role = player.role;
-
-      if (role == null) continue;
-
-      counts[role] = (counts[role] ?? 0) + 1;
-    }
-
-    return [
-      ...GameRoles.configurable.map((role) {
-        return RoleSummary(
-          name: role.name,
-          value: (counts[role.type] ?? 0).toString(),
+  void openApp(String title, IconData icon, Widget child) {
+    Navigator.of(context).push(PageRouteBuilder<void>(
+      transitionDuration: const Duration(milliseconds: 360),
+      reverseTransitionDuration: const Duration(milliseconds: 260),
+      pageBuilder: (_, __, ___) => _IOSAppPage(title: title, icon: icon, child: child),
+      transitionsBuilder: (_, animation, __, child) {
+        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(scale: Tween<double>(begin: .92, end: 1).animate(curved), child: child),
         );
-      }),
-      RoleSummary(
-        name: GameRoles.nameOf(MafiaRoleCardType.citizen),
-        value: (counts[MafiaRoleCardType.citizen] ?? 0).toString(),
-      ),
-    ];
+      },
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: MafiaBackground(
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: Responsive.horizontalPadding(context),
-                  vertical: 14,
-                ),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - 28,
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: Responsive.contentMaxWidth(context),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          ScreenHeader(
-                            title: 'Panel gospodarza',
-                            icon: Icons.admin_panel_settings_rounded,
-                            onBack: () => Navigator.pop(context),
-                            showTitle: true,
-                            showIcon: false,
-                          ),
-
-                          SizedBox(
-                            height: Responsive.isSmall(context) ? 14 : 18,
-                          ),
-
-                          _HostPanelTabs(
-                            selectedTab: selectedTab,
-                            councilBadgeCount: unreadCouncilcard,
-                            onChanged: (tab) {
-                              setState(() {
-                                selectedTab = tab;
-
-                                if (tab == _HostPanelTab.council) {
-                                  unreadCouncilcard = 0;
-                                }
-                              });
-                            },
-                          ),
-
-                          SizedBox(
-                            height: Responsive.isSmall(context) ? 14 : 18,
-                          ),
-
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 360),
-                            switchInCurve: Curves.easeOutExpo,
-                            switchOutCurve: Curves.easeInCubic,
-                            transitionBuilder: (child, animation) {
-                              return _NeonPanelTransition(
-                                animation: animation,
-                                child: child,
-                              );
-                            },
-                            child: KeyedSubtree(
-                              key: ValueKey<_HostPanelTab>(selectedTab),
-                              child: _buildSelectedTab(context),
-                            ),
-                          ),
-
-                          SizedBox(
-                            height: Responsive.isSmall(context) ? 18 : 24,
-                          ),
-
-                          MafiaButton(
-                            text: 'Wróć do menu',
-                            icon: Icons.home_rounded,
-                            onPressed: () {
-                              Navigator.popUntil(
-                                context,
-                                (route) => route.isFirst,
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSelectedTab(BuildContext context) {
-    switch (selectedTab) {
-      case _HostPanelTab.roles:
-        return _buildRolesTab(context);
-      case _HostPanelTab.tasks:
-        return _buildTasksTab(context);
-      case _HostPanelTab.council:
-        return _buildCouncilTab(context);
-      case _HostPanelTab.phases:
-        return _buildPhasesTab(context);
-    }
-  }
-
-  Widget _buildRolesTab(BuildContext context) {
-    final roleSummary = currentRoleSummary();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        MafiaPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SectionHeader(
-                title: 'Gospodarz',
-                icon: Icons.person_rounded,
-                showIcon: false,
-              ),
-              const SizedBox(height: 14),
-              LobbyPlayerTile(name: room.hostName, isHost: true),
-              const SizedBox(height: 8),
-              MafiaButton(
-                text: 'Karta gospodarza',
-                icon: Icons.style_rounded,
-                onPressed: () => openHostCard(context),
-              ),
-            ],
-          ),
-        ),
-
-        SizedBox(height: Responsive.isSmall(context) ? 14 : 18),
-
-        MafiaPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: SectionHeader(
-                      title: 'Role graczy',
-                      icon: Icons.style_outlined,
-                      showIcon: false,
-                    ),
-                  ),
-                  Text(
-                    '${room.players.length}/${room.maxPlayers}',
-                    style: GoogleFonts.cinzel(
-                      color: AppColors.neonWhite,
-                      fontSize: Responsive.isSmall(context) ? 18 : 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              if (room.players.isEmpty)
-                Text(
-                  'Brak graczy w pokoju.',
-                  style: GoogleFonts.cormorantGaramond(
-                    color: Colors.white70,
-                    fontSize: 19,
-                    fontStyle: FontStyle.italic,
-                  ),
-                )
-              else
-                Column(
-                  children: List.generate(room.players.length, (index) {
-                    final player = room.players[index];
-
-                    final roleName = player.role == null
-                        ? 'Brak'
-                        : GameRoles.nameOf(player.role!);
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _StartedPlayerCardTile(
-                        playerName: player.name,
-                        playerNumber: index + 1,
-                        roleName: roleName,
-                        hasRole: player.role != null,
-                        onShowCard: () {
-                          openPlayerCard(context, index);
-                        },
-                      ),
-                    );
-                  }),
-                ),
-            ],
-          ),
-        ),
-
-        SizedBox(height: Responsive.isSmall(context) ? 14 : 18),
-
-        MafiaPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SectionHeader(
-                title: 'Pozostałe role',
-                icon: Icons.analytics_outlined,
-                showIcon: false,
-              ),
-              const SizedBox(height: 16),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 190),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: roleSummary.map<Widget>((item) {
-                      return SummaryText(
-                        label: item.name,
-                        value: item.value,
-                        valueColor: item.valueColor,
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTasksTab(BuildContext context) {
-    return MafiaPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final playerNames = room.players.map((player) => player.name).toList();
+    return MafiaIOSScaffold(
+      child: PageView(
+        physics: const BouncingScrollPhysics(),
         children: [
-          SectionHeader(
-            title: 'Zadania',
-            icon: Icons.assignment_outlined,
-            showIcon: false,
+          _Home(
+            room: room,
+            onSettings: () => openApp('Ustawienia', Icons.settings_rounded, _PhaseApp(room: room, onChangePhase: changePhase)),
+            onRules: () => openApp('Zasady', Icons.description_outlined, const _TextApp(title: 'Zasady', text: 'Gospodarz prowadzi rozgrywkę, zmienia fazy dnia i nocy oraz kontroluje zadania.')),
+            onNotes: () => openApp('Notatki', Icons.edit_rounded, const _NotesApp()),
+            onAvatar: () => openApp('Avatar', Icons.person_rounded, _PlayersApp(room: room)),
+            onPower: () => openApp('Karty mocy', Icons.festival_rounded, const _PowerCardsApp()),
+            onMyCard: () => openApp('Moja karta', Icons.festival_rounded, _RolesApp(room: room)),
+            onMessages: () => openApp('Wiadomości', Icons.send_rounded, MafiaChatScreen(currentPlayerName: room.hostName, players: playerNames)),
+            onTasks: () => openApp('Zadania', Icons.extension_rounded, const _TextApp(title: 'Zadania', text: 'Tutaj pojawią się misje, uczestnicy, zwycięzcy i nagrody w kartach mocy.')),
+            onPremium: () => openApp('Premium', Icons.workspace_premium_rounded, const _TextApp(title: 'Premium', text: 'Tutaj pojawią się funkcje premium.')),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Moduł zadań dodamy później.',
-            style: GoogleFonts.cormorantGaramond(
-              color: Colors.white70,
-              fontSize: Responsive.isSmall(context) ? 19 : 22,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tutaj gospodarz będzie wybierał uczestników zadania, zwycięzców oraz liczbę kart przyznawanych jako nagroda.',
-            style: GoogleFonts.cormorantGaramond(
-              color: Colors.white54,
-              fontSize: Responsive.isSmall(context) ? 16 : 18,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
+          _PhaseApp(room: room, onChangePhase: changePhase),
         ],
       ),
-    );
-  }
-
-  Widget _buildCouncilTab(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        MafiaPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SectionHeader(
-                title: 'Narada',
-                icon: Icons.table_bar_rounded,
-                showIcon: false,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Wspólny stół gry. Tutaj pojawią się karty zagrane przez graczy.',
-                style: GoogleFonts.cormorantGaramond(
-                  color: Colors.white70,
-                  fontSize: Responsive.isSmall(context) ? 16 : 18,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-              const SizedBox(height: 14),
-              _DealerPanel(hostName: room.hostName),
-            ],
-          ),
-        ),
-
-        SizedBox(height: Responsive.isSmall(context) ? 14 : 18),
-
-        MafiaPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SectionHeader(
-                title: 'Stół narady',
-                icon: Icons.style_outlined,
-                showIcon: false,
-              ),
-              const SizedBox(height: 14),
-              _CouncilTableArea(playedcard: playedcard),
-              const SizedBox(height: 14),
-              Center(
-                child: MafiaButton(
-                  text: 'Dodaj testową kartę',
-                  icon: Icons.add_card_rounded,
-                  onPressed: addTestPlayedCard,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        SizedBox(height: Responsive.isSmall(context) ? 14 : 18),
-
-        MafiaPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: SectionHeader(
-                      title: 'Gracze przy naradzie',
-                      icon: Icons.people_alt_outlined,
-                      showIcon: false,
-                    ),
-                  ),
-                  Text(
-                    room.players.length.toString(),
-                    style: GoogleFonts.cinzel(
-                      color: AppColors.neonWhite,
-                      fontSize: Responsive.isSmall(context) ? 18 : 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _CouncilPlayersGrid(
-                players: room.players.map((player) => player.name).toList(),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPhasesTab(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        MafiaPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SectionHeader(
-                title: 'Aktualna faza',
-                icon: Icons.timelapse_rounded,
-                showIcon: false,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                phaseName(room.phase).toUpperCase(),
-                textAlign: TextAlign.center,
-                style: GoogleFonts.cinzel(
-                  color: AppColors.neonWhite,
-                  fontSize: Responsive.isSmall(context) ? 30 : 38,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                  shadows: const [
-                    Shadow(color: Colors.white, blurRadius: 6),
-                    Shadow(
-                      color: Colors.black,
-                      blurRadius: 12,
-                      offset: Offset(3, 3),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                phaseDescription(room.phase),
-                textAlign: TextAlign.center,
-                style: GoogleFonts.cormorantGaramond(
-                  color: Colors.white70,
-                  fontSize: Responsive.isSmall(context) ? 17 : 20,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        SizedBox(height: Responsive.isSmall(context) ? 14 : 18),
-
-        MafiaPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SectionHeader(
-                title: 'Akcje gospodarza',
-                icon: Icons.tune_rounded,
-                showIcon: false,
-              ),
-              const SizedBox(height: 16),
-              _PhaseActions(
-                currentPhase: room.phase,
-                onDay: () => changePhase(GamePhase.day),
-                onNight: () => changePhase(GamePhase.night),
-                onVoting: () => changePhase(GamePhase.voting),
-                onFinish: () => changePhase(GamePhase.finished),
-              ),
-            ],
-          ),
-        ),
-
-        if (room.phase == GamePhase.voting) ...[
-          SizedBox(height: Responsive.isSmall(context) ? 14 : 18),
-          _VotingLivePanel(
-            players: room.players.map((player) => player.name).toList(),
-            onEndVoting: () => changePhase(GamePhase.day),
-          ),
-        ],
-      ],
     );
   }
 }
 
-class _NeonPanelTransition extends StatelessWidget {
-  const _NeonPanelTransition({required this.animation, required this.child});
+class _Home extends StatelessWidget {
+  const _Home({required this.room, required this.onSettings, required this.onRules, required this.onNotes, required this.onAvatar, required this.onPower, required this.onMyCard, required this.onMessages, required this.onTasks, required this.onPremium});
+  final GameRoom room;
+  final VoidCallback onSettings, onRules, onNotes, onAvatar, onPower, onMyCard, onMessages, onTasks, onPremium;
 
-  final Animation<double> animation;
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(Responsive.horizontalPadding(context), 22, Responsive.horizontalPadding(context), 22),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+          child: Column(children: [
+            IOSGlass(
+              radius: 28,
+              opacity: .14,
+              borderOpacity: .12,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              child: Row(children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const MafiaClockText(fontSize: 62, align: TextAlign.left),
+                  const SizedBox(height: 8),
+                  Text(phaseLabel(room.phase), style: const TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w900)),
+                ])),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (c, a) => ScaleTransition(scale: a, child: FadeTransition(opacity: a, child: c)),
+                  child: Icon(phaseIcon(room.phase), key: ValueKey(room.phase), color: AppColors.white, size: 72),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 24),
+            Wrap(spacing: 16, runSpacing: 20, alignment: WrapAlignment.center, children: [
+              IOSAppIcon(label: 'ustawienia', icon: Icons.settings_rounded, onTap: onSettings),
+              IOSAppIcon(label: 'zasady', icon: Icons.description_outlined, onTap: onRules),
+              IOSCardIcon(label: 'karty mocy', assetPath: MafiaAssets.blueCard, color: MafiaPlayingCardColor.blue, onTap: onPower),
+              IOSAppIcon(label: 'notatki', icon: Icons.edit_rounded, onTap: onNotes),
+              IOSAppIcon(label: 'avatar', icon: Icons.person_rounded, onTap: onAvatar),
+              IOSCardIcon(label: 'moja karta', assetPath: MafiaAssets.redCard, color: MafiaPlayingCardColor.red, onTap: onMyCard),
+              IOSAppIcon(label: 'wiadomości', icon: Icons.send_rounded, badge: 1, onTap: onMessages),
+              IOSAppIcon(label: 'zadania', icon: Icons.extension_rounded, onTap: onTasks),
+              IOSAppIcon(label: 'premium', icon: Icons.workspace_premium_rounded, isPremium: true, onTap: onPremium),
+              IOSAppIcon(label: 'menu', icon: Icons.home_rounded, onTap: () => Navigator.popUntil(context, (route) => route.isFirst)),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _IOSAppPage extends StatelessWidget {
+  const _IOSAppPage({required this.title, required this.icon, required this.child});
+  final String title;
+  final IconData icon;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final fadeAnimation = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    );
-
-    final slideAnimation =
-        Tween<Offset>(begin: const Offset(0.08, 0), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutExpo,
-            reverseCurve: Curves.easeInCubic,
-          ),
-        );
-
-    final scaleAnimation = Tween<double>(begin: 0.965, end: 1.0).animate(
-      CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOutBack,
-        reverseCurve: Curves.easeInCubic,
-      ),
-    );
-
-    return FadeTransition(
-      opacity: fadeAnimation,
-      child: SlideTransition(
-        position: slideAnimation,
-        child: ScaleTransition(
-          scale: scaleAnimation,
-          child: AnimatedBuilder(
-            animation: animation,
-            child: child,
-            builder: (context, child) {
-              final glow = animation.value.clamp(0.0, 1.0);
-
-              return DecoratedBox(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(
-                        0xFF2F7CFF,
-                      ).withValues(alpha: 0.14 * glow),
-                      blurRadius: 26 * glow,
-                      spreadRadius: 1 * glow,
-                    ),
-                    BoxShadow(
-                      color: const Color(
-                        0xFFFF2BFF,
-                      ).withValues(alpha: 0.10 * glow),
-                      blurRadius: 34 * glow,
-                      spreadRadius: 1 * glow,
-                    ),
-                  ],
-                ),
-                child: child,
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HostPanelTabs extends StatelessWidget {
-  const _HostPanelTabs({
-    required this.selectedTab,
-    required this.councilBadgeCount,
-    required this.onChanged,
-  });
-
-  final _HostPanelTab selectedTab;
-  final int councilBadgeCount;
-  final ValueChanged<_HostPanelTab> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return MafiaPanel(
-      child: Row(
-        children: [
-          _HostPanelTabButton(
-            label: 'Role',
-            selected: selectedTab == _HostPanelTab.roles,
-            onTap: () => onChanged(_HostPanelTab.roles),
-          ),
-          _HostPanelTabButton(
-            label: 'Zadania',
-            selected: selectedTab == _HostPanelTab.tasks,
-            onTap: () => onChanged(_HostPanelTab.tasks),
-          ),
-          _HostPanelTabButton(
-            label: 'Narada',
-            selected: selectedTab == _HostPanelTab.council,
-            badgeCount: councilBadgeCount,
-            onTap: () => onChanged(_HostPanelTab.council),
-          ),
-          _HostPanelTabButton(
-            label: 'Fazy',
-            selected: selectedTab == _HostPanelTab.phases,
-            onTap: () => onChanged(_HostPanelTab.phases),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HostPanelTabButton extends StatelessWidget {
-  const _HostPanelTabButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.badgeCount = 0,
-  });
-
-  final String label;
-  final bool selected;
-  final int badgeCount;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final small = Responsive.isSmall(context);
-
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                height: small ? 38 : 42,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.neonWhite.withValues(alpha: 0.15)
-                      : Colors.black.withValues(alpha: 0.22),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: selected
-                        ? AppColors.neonWhite
-                        : AppColors.frame.withValues(alpha: 0.45),
-                  ),
-                ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    label.toUpperCase(),
-                    maxLines: 1,
-                    style: GoogleFonts.cinzel(
-                      color: selected ? AppColors.neonWhite : Colors.white70,
-                      fontSize: small ? 11 : 13,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ),
-              if (badgeCount > 0)
-                Positioned(
-                  right: -3,
-                  top: -7,
+    return Dismissible(
+      key: ValueKey(title),
+      direction: DismissDirection.down,
+      resizeDuration: null,
+      onDismissed: (_) => Navigator.of(context).maybePop(),
+      child: MafiaIOSScaffold(
+        darkOverlay: .10,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(Responsive.horizontalPadding(context), 12, Responsive.horizontalPadding(context), 14),
+          child: Column(children: [
+            Row(children: [
+              IOSBackButton(onTap: () => Navigator.pop(context)),
+              Icon(icon, color: AppColors.white, size: 25),
+              const SizedBox(width: 10),
+              Expanded(child: Text(title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.white, fontSize: 21, fontWeight: FontWeight.w900, letterSpacing: 1.1))),
+            ]),
+            const SizedBox(height: 10),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
                   child: Container(
-                    constraints: const BoxConstraints(
-                      minWidth: 18,
-                      minHeight: 18,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.redAccent,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Colors.black, width: 1.2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      color: Colors.white.withValues(alpha: .10),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white.withValues(alpha: .12)),
                     ),
-                    child: Center(
-                      child: Text(
-                        badgeCount > 99 ? '99+' : badgeCount.toString(),
-                        style: GoogleFonts.cinzel(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                    child: child,
                   ),
                 ),
-            ],
-          ),
+              ),
+            ),
+            const SizedBox(height: 9),
+            Container(width: 118, height: 5, decoration: BoxDecoration(color: Colors.white.withValues(alpha: .55), borderRadius: BorderRadius.circular(99))),
+          ]),
         ),
       ),
     );
   }
 }
 
-class _StartedPlayerCardTile extends StatelessWidget {
-  const _StartedPlayerCardTile({
-    required this.playerName,
-    required this.playerNumber,
-    required this.roleName,
-    required this.hasRole,
-    required this.onShowCard,
-  });
-
-  final String playerName;
-  final int playerNumber;
-  final String roleName;
-  final bool hasRole;
-  final VoidCallback onShowCard;
+class _PhaseApp extends StatelessWidget {
+  const _PhaseApp({required this.room, required this.onChangePhase});
+  final GameRoom room;
+  final ValueChanged<GamePhase> onChangePhase;
 
   @override
   Widget build(BuildContext context) {
-    final small = Responsive.isSmall(context);
+    return ListView(padding: const EdgeInsets.all(16), physics: const BouncingScrollPhysics(), children: [
+      IOSGlass(opacity: .14, child: Column(children: [
+        AnimatedSwitcher(duration: const Duration(milliseconds: 300), child: Icon(phaseIcon(room.phase), key: ValueKey(room.phase), color: AppColors.white, size: 72)),
+        const SizedBox(height: 8),
+        Text(phaseLabel(room.phase).toUpperCase(), style: const TextStyle(color: AppColors.white, fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+      ])),
+      const SizedBox(height: 16),
+      MafiaButton(text: 'Rozpocznij dzień', icon: Icons.wb_sunny_rounded, onPressed: () => onChangePhase(GamePhase.day)),
+      const SizedBox(height: 12),
+      MafiaButton(text: 'Rozpocznij noc', icon: Icons.nightlight_round, onPressed: () => onChangePhase(GamePhase.night)),
+      const SizedBox(height: 12),
+      MafiaButton(text: 'Głosowanie', icon: Icons.how_to_vote_rounded, onPressed: () => onChangePhase(GamePhase.voting)),
+      const SizedBox(height: 12),
+      MafiaButton(text: 'Zakończ grę', icon: Icons.flag_rounded, onPressed: () => onChangePhase(GamePhase.finished)),
+    ]);
+  }
+}
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: small ? 10 : 12,
-        vertical: small ? 10 : 12,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.frame.withValues(alpha: 0.72)),
-      ),
-      child: Column(
+class _PlayersApp extends StatelessWidget {
+  const _PlayersApp({required this.room});
+  final GameRoom room;
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const BouncingScrollPhysics(),
         children: [
-          Row(
-            children: [
-              SizedBox(
-                width: 30,
-                child: Center(
-                  child: Icon(
-                    Icons.person_outline,
-                    color: AppColors.neonWhite,
-                    size: small ? 20 : 22,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  playerName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.cinzel(
-                    color: Colors.white,
-                    fontSize: small ? 14 : 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    'Rola: $roleName',
-                    maxLines: 1,
-                    softWrap: false,
-                    textAlign: TextAlign.right,
-                    style: GoogleFonts.cormorantGaramond(
-                      color: AppColors.neonWhite,
-                      fontSize: small ? 16 : 18,
-                      fontWeight: FontWeight.w700,
-                      fontStyle: FontStyle.italic,
-                      letterSpacing: 0.5,
-                      shadows: const [
-                        Shadow(color: Colors.white, blurRadius: 4),
-                        Shadow(
-                          color: Colors.black,
-                          blurRadius: 8,
-                          offset: Offset(2, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            height: small ? 42 : 46,
-            child: ElevatedButton(
-              onPressed: hasRole ? onShowCard : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black.withValues(alpha: 0.58),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shadowColor: Colors.transparent,
-                disabledBackgroundColor: Colors.black.withValues(alpha: 0.25),
-                disabledForegroundColor: Colors.white38,
-                side: BorderSide(
-                  color: hasRole
-                      ? AppColors.frame
-                      : AppColors.frame.withValues(alpha: 0.28),
-                  width: 1.5,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-              ),
-              child: Text(
-                hasRole ? 'POKAŻ KARTĘ' : 'BRAK KARTY',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.cinzel(
-                  fontSize: small ? 14 : 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
-                  color: hasRole ? Colors.white : Colors.white38,
-                  shadows: hasRole
-                      ? const [
-                          Shadow(color: Colors.white, blurRadius: 4),
-                          Shadow(
-                            color: Colors.black,
-                            blurRadius: 8,
-                            offset: Offset(2, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-              ),
-            ),
-          ),
+          SectionHeader(title: 'Gracze ${room.players.length}/${room.maxPlayers}', icon: Icons.people_alt_rounded),
+          const SizedBox(height: 14),
+          LobbyPlayerTile(name: room.hostName, isHost: true),
+          ...room.players.map((p) => LobbyPlayerTile(name: p.name, isHost: false)),
         ],
-      ),
-    );
-  }
+      );
 }
 
-class _DealerPanel extends StatelessWidget {
-  const _DealerPanel({required this.hostName});
-
-  final String hostName;
-
+class _RolesApp extends StatelessWidget {
+  const _RolesApp({required this.room});
+  final GameRoom room;
+  void openCard(BuildContext c, MafiaRoleCardType r) => Navigator.push(c, MaterialPageRoute(builder: (_) => RoleRevealScreen(roleType: r)));
   @override
-  Widget build(BuildContext context) {
-    final small = Responsive.isSmall(context);
-
-    return Container(
-      padding: EdgeInsets.all(small ? 10 : 12),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.32),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.frame.withValues(alpha: 0.65)),
-      ),
-      child: Row(
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const BouncingScrollPhysics(),
         children: [
-          const MafiaHatIcon(size: 24, color: AppColors.neonWhite),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              hostName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.cinzel(
-                color: Colors.white,
-                fontSize: small ? 14 : 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
+          IOSCardIcon(label: 'karta gospodarza', assetPath: MafiaAssets.blueCard, color: MafiaPlayingCardColor.blue, onTap: () => openCard(context, MafiaRoleCardType.host)),
+          const SizedBox(height: 16),
+          ...room.players.map((p) {
+            final r = p.role;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: MafiaPanel(
+                child: Row(children: [
+                  Expanded(child: Text(p.name, style: const TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w900))),
+                  Text(r == null ? 'Brak' : GameRoles.nameOf(r), style: TextStyle(color: AppColors.white.withValues(alpha: .72), fontWeight: FontWeight.w800)),
+                  IconButton(onPressed: r == null ? null : () => openCard(context, r), icon: const Icon(Icons.visibility_rounded, color: AppColors.white)),
+                ]),
               ),
-            ),
-          ),
-          Text(
-            'GOSPODARZ',
-            style: GoogleFonts.cinzel(
-              color: Colors.greenAccent,
-              fontSize: small ? 10 : 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+            );
+          }),
         ],
-      ),
-    );
-  }
+      );
 }
 
-class _CouncilTableArea extends StatelessWidget {
-  const _CouncilTableArea({required this.playedcard});
-
-  final List<_TableCardPlay> playedcard;
-
-  void showLargeCard(BuildContext context, _TableCardPlay card) {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Zamknij kartę',
-      barrierColor: Colors.black.withValues(alpha: 0.42),
-      transitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return _LargePlayedCardOverlay(
-          cardName: card.cardName,
-          playerName: card.playerName,
-        );
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        );
-
-        return FadeTransition(
-          opacity: curved,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.88, end: 1.0).animate(curved),
-            child: child,
-          ),
-        );
-      },
-    );
-  }
-
+class _PowerCardsApp extends StatelessWidget {
+  const _PowerCardsApp();
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(
-        minHeight: Responsive.isSmall(context) ? 130 : 150,
-      ),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF07101B).withValues(alpha: 0.84),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: const Color(0xFF6EA8FF).withValues(alpha: 0.35),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 16,
-            offset: const Offset(0, 7),
-          ),
-          BoxShadow(
-            color: const Color(0xFF2E7BFF).withValues(alpha: 0.10),
-            blurRadius: 20,
-          ),
-        ],
-      ),
-      child: playedcard.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                child: Text(
-                  'Brak zagranych kart.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.cormorantGaramond(
-                    color: Colors.white60,
-                    fontSize: Responsive.isSmall(context) ? 16 : 19,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-            )
-          : Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: playedcard.map((card) {
-                return _BlankPlayedCard(
-                  cardName: card.cardName,
-                  playerName: card.playerName,
-                  onTap: () => showLargeCard(context, card),
-                );
-              }).toList(),
-            ),
-    );
-  }
+  Widget build(BuildContext context) => GridView.builder(
+        padding: const EdgeInsets.all(18),
+        physics: const BouncingScrollPhysics(),
+        itemCount: 6,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 14, mainAxisSpacing: 14, childAspectRatio: .72),
+        itemBuilder: (_, __) => CardAsset(assetPath: MafiaAssets.blueCard, fallbackColor: MafiaPlayingCardColor.blue),
+      );
 }
 
-class _BlankPlayedCard extends StatefulWidget {
-  const _BlankPlayedCard({
-    required this.cardName,
-    required this.playerName,
-    required this.onTap,
-  });
-
-  static const String cardBackPath = 'assets/images/card/card_back_blue.jpg';
-
-  final String cardName;
-  final String playerName;
-  final VoidCallback onTap;
-
+class _TextApp extends StatelessWidget {
+  const _TextApp({required this.title, required this.text});
+  final String title;
+  final String text;
   @override
-  State<_BlankPlayedCard> createState() => _BlankPlayedcardtate();
-}
-
-class _BlankPlayedcardtate extends State<_BlankPlayedCard> {
-  bool hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final small = Responsive.isSmall(context);
-
-    final cardWidth = small ? 70.0 : 82.0;
-    final cardHeight = cardWidth * 1.48;
-
-    return MouseRegion(
-      onEnter: (_) {
-        setState(() {
-          hovered = true;
-        });
-      },
-      onExit: (_) {
-        setState(() {
-          hovered = false;
-        });
-      },
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          scale: hovered ? 1.07 : 1.0,
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOut,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                curve: Curves.easeOutCubic,
-                width: cardWidth,
-                height: cardHeight,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.black,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.62),
-                      blurRadius: hovered ? 16 : 9,
-                      offset: Offset(0, hovered ? 8 : 5),
-                    ),
-                    if (hovered)
-                      BoxShadow(
-                        color: AppColors.bloodGlow.withValues(alpha: 0.30),
-                        blurRadius: 18,
-                      ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.asset(
-                        _BlankPlayedCard.cardBackPath,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                      ),
-
-                      // Bardzo delikatne przyciemnienie brzegów.
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            center: Alignment.center,
-                            radius: 1.02,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.06),
-                              Colors.black.withValues(alpha: 0.28),
-                            ],
-                            stops: const [0.55, 0.82, 1.00],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 5),
-
-              SizedBox(
-                width: cardWidth + 16,
-                child: Text(
-                  widget.playerName,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.cormorantGaramond(
-                    color: AppColors.mutedCream,
-                    fontSize: small ? 10.5 : 12,
-                    fontWeight: FontWeight.w700,
-                    fontStyle: FontStyle.italic,
-                    shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LargePlayedCardOverlay extends StatelessWidget {
-  const _LargePlayedCardOverlay({
-    required this.cardName,
-    required this.playerName,
-  });
-
-  static const String cardBackPath = 'assets/images/card/card_back_blue.jpg';
-
-  final String cardName;
-  final String playerName;
-
-  @override
-  Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final cardWidth = width < 390 ? width * 0.72 : 300.0;
-    final cardHeight = cardWidth * 1.48;
-
-    return Material(
-      color: Colors.transparent,
-      child: Stack(
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const BouncingScrollPhysics(),
         children: [
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 4.5, sigmaY: 4.5),
-              child: Container(color: Colors.black.withValues(alpha: 0.38)),
-            ),
-          ),
-
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-
-          Center(
-            child: GestureDetector(
-              onTap: () {},
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: cardWidth,
-                    height: cardHeight,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      color: Colors.black,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.86),
-                          blurRadius: 34,
-                          offset: const Offset(0, 18),
-                        ),
-                        BoxShadow(
-                          color: AppColors.bloodGlow.withValues(alpha: 0.26),
-                          blurRadius: 34,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.asset(
-                            cardBackPath,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                          ),
-
-                          // Tylko subtelne światło, zero nachodzących paneli.
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: RadialGradient(
-                                center: Alignment.center,
-                                radius: 1.04,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.08),
-                                  Colors.black.withValues(alpha: 0.34),
-                                ],
-                                stops: const [0.55, 0.82, 1.00],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  Container(
-                    width: cardWidth,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.darkPanel.withValues(alpha: 0.88),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: AppColors.frameBright.withValues(alpha: 0.70),
-                        width: 1.2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                        BoxShadow(
-                          color: AppColors.bloodGlow.withValues(alpha: 0.16),
-                          blurRadius: 20,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          cardName.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.cinzel(
-                            color: AppColors.neonWhite,
-                            fontSize: width < 390 ? 22 : 26,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.4,
-                            shadows: [
-                              Shadow(
-                                color: AppColors.bloodGlow.withValues(
-                                  alpha: 0.62,
-                                ),
-                                blurRadius: 7,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          playerName,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.cormorantGaramond(
-                            color: AppColors.mutedCream,
-                            fontSize: width < 390 ? 18 : 21,
-                            fontWeight: FontWeight.w700,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Text(
-                    'Dotknij poza kartą, aby zamknąć',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.cormorantGaramond(
-                      color: Colors.white38,
-                      fontSize: width < 390 ? 14 : 16,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          SectionHeader(title: title, icon: Icons.info_outline_rounded),
+          const SizedBox(height: 14),
+          MafiaPanel(child: Text(text, style: TextStyle(color: AppColors.white.withValues(alpha: .78), fontSize: 18, fontWeight: FontWeight.w700))),
         ],
-      ),
-    );
-  }
+      );
 }
 
-class _CouncilPlayersGrid extends StatelessWidget {
-  const _CouncilPlayersGrid({required this.players});
-
-  final List<String> players;
-
+class _NotesApp extends StatelessWidget {
+  const _NotesApp();
   @override
-  Widget build(BuildContext context) {
-    if (players.isEmpty) {
-      return Text(
-        'Brak graczy przy naradzie.',
-        style: GoogleFonts.cormorantGaramond(
-          color: Colors.white70,
-          fontSize: 18,
-          fontStyle: FontStyle.italic,
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: TextField(
+          maxLines: null,
+          expands: true,
+          style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w700),
+          decoration: InputDecoration(
+            hintText: 'Notatki gospodarza...',
+            hintStyle: TextStyle(color: AppColors.white.withValues(alpha: .42)),
+            filled: true,
+            fillColor: Colors.black.withValues(alpha: .22),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
+          ),
         ),
       );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-
-        final columns = width < 340
-            ? 3
-            : width < 520
-            ? 4
-            : width < 760
-            ? 5
-            : 6;
-
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: players.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            mainAxisSpacing: 7,
-            crossAxisSpacing: 7,
-            childAspectRatio: 1.15,
-          ),
-          itemBuilder: (context, index) {
-            return _CouncilPlayerTile(
-              playerName: players[index],
-              number: index + 1,
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-class _CouncilPlayerTile extends StatelessWidget {
-  const _CouncilPlayerTile({required this.playerName, required this.number});
-
-  final String playerName;
-  final int number;
-
-  @override
-  Widget build(BuildContext context) {
-    final small = Responsive.isSmall(context);
-
-    return Container(
-      padding: EdgeInsets.all(small ? 5 : 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.045),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.frame.withValues(alpha: 0.40)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: small ? 11 : 12,
-            backgroundColor: Colors.black.withValues(alpha: 0.45),
-            child: Text(
-              number.toString(),
-              style: GoogleFonts.cinzel(
-                color: AppColors.neonWhite,
-                fontSize: small ? 8.5 : 9.5,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            playerName,
-            maxLines: 2,
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.cinzel(
-              color: Colors.white,
-              fontSize: small ? 8.5 : 9.5,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PhaseActions extends StatelessWidget {
-  const _PhaseActions({
-    required this.currentPhase,
-    required this.onDay,
-    required this.onNight,
-    required this.onVoting,
-    required this.onFinish,
-  });
-
-  final GamePhase currentPhase;
-  final VoidCallback onDay;
-  final VoidCallback onNight;
-  final VoidCallback onVoting;
-  final VoidCallback onFinish;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        if (currentPhase != GamePhase.day) ...[
-          Center(
-            child: MafiaButton(
-              text: 'Rozpocznij dzień',
-              icon: Icons.wb_sunny_outlined,
-              onPressed: onDay,
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        if (currentPhase != GamePhase.night) ...[
-          Center(
-            child: MafiaButton(
-              text: 'Rozpocznij noc',
-              icon: Icons.nightlight_round,
-              onPressed: onNight,
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        if (currentPhase != GamePhase.voting) ...[
-          Center(
-            child: MafiaButton(
-              text: 'Rozpocznij głosowanie',
-              icon: Icons.how_to_vote_rounded,
-              onPressed: onVoting,
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        Center(
-          child: MafiaButton(
-            text: 'Zakończ grę',
-            icon: Icons.flag_rounded,
-            onPressed: onFinish,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _VotingLivePanel extends StatelessWidget {
-  const _VotingLivePanel({required this.players, required this.onEndVoting});
-
-  final List<String> players;
-  final VoidCallback onEndVoting;
-
-  @override
-  Widget build(BuildContext context) {
-    return MafiaPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionHeader(
-            title: 'Głosowanie',
-            icon: Icons.how_to_vote_rounded,
-            showIcon: false,
-          ),
-          const SizedBox(height: 16),
-          if (players.isEmpty)
-            Text(
-              'Brak graczy do głosowania.',
-              style: GoogleFonts.cormorantGaramond(
-                color: Colors.white70,
-                fontSize: 19,
-                fontStyle: FontStyle.italic,
-              ),
-            )
-          else
-            Column(
-              children: players.map((player) {
-                return SummaryText(
-                  label: player,
-                  value: 'Brak głosu',
-                  valueColor: Colors.white70,
-                );
-              }).toList(),
-            ),
-          const SizedBox(height: 16),
-          Center(
-            child: MafiaButton(
-              text: 'Zakończ głosowanie',
-              icon: Icons.check_rounded,
-              onPressed: onEndVoting,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TableCardPlay {
-  const _TableCardPlay({required this.playerName, required this.cardName});
-
-  final String playerName;
-  final String cardName;
 }

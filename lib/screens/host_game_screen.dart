@@ -1,14 +1,13 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-
+import '../core/app_colors.dart';
 import '../core/responsive.dart';
 import '../data/roles.dart';
 import '../models/role_setting.dart';
 import '../models/role_summary.dart';
 import '../services/local_room_service.dart';
 import '../services/room_service.dart';
-import '../widgets/shared_widgets.dart';
+import '../ui_system/mafia_ios_system.dart';
 import 'lobby_screen.dart';
 
 class HostGameScreen extends StatefulWidget {
@@ -20,18 +19,12 @@ class HostGameScreen extends StatefulWidget {
 
 class _HostGameScreenState extends State<HostGameScreen> {
   final TextEditingController hostNameController = TextEditingController();
-
   final RoomService roomService = const LocalRoomService();
-
   int players = 6;
-
   Map<MafiaRoleCardType, int> roleCounts = GameRoles.defaultRoleCounts();
 
   int get specialRoles => GameRoles.specialRolesCount(roleCounts);
-
-  int get citizens =>
-      GameRoles.citizensCount(players: players, roleCounts: roleCounts);
-
+  int get citizens => GameRoles.citizensCount(players: players, roleCounts: roleCounts);
   bool get isValid => specialRoles <= players;
 
   @override
@@ -40,14 +33,11 @@ class _HostGameScreenState extends State<HostGameScreen> {
     super.dispose();
   }
 
-  int roleValue(MafiaRoleCardType type) {
-    return roleCounts[type] ?? 0;
-  }
+  int roleValue(MafiaRoleCardType type) => roleCounts[type] ?? 0;
 
   void setRoleValue(MafiaRoleCardType type, int value) {
     setState(() {
       roleCounts = {...roleCounts, type: value};
-
       normalizeRoleCounts();
     });
   }
@@ -60,21 +50,14 @@ class _HostGameScreenState extends State<HostGameScreen> {
   }
 
   void normalizeRoleCounts() {
-    final maxSpecial = players;
     var total = GameRoles.specialRolesCount(roleCounts);
-
-    if (total <= maxSpecial) return;
-
-    var over = total - maxSpecial;
-    final removableRoles = GameRoles.configurable.reversed.toList();
-
-    for (final role in removableRoles) {
+    if (total <= players) return;
+    var over = total - players;
+    for (final role in GameRoles.configurable.reversed) {
       if (over <= 0) break;
-
       final current = roleCounts[role.type] ?? 0;
       final removable = math.max(0, current - role.min);
       final decrease = math.min(removable, over);
-
       if (decrease > 0) {
         roleCounts[role.type] = current - decrease;
         over -= decrease;
@@ -83,234 +66,97 @@ class _HostGameScreenState extends State<HostGameScreen> {
   }
 
   int maxForRole(GameRoleDefinition role) {
-    final maxSpecial = players;
-
     var otherRolesCount = 0;
-
     for (final otherRole in GameRoles.configurable) {
       if (otherRole.type == role.type) continue;
-
       otherRolesCount += roleCounts[otherRole.type] ?? 0;
     }
-
-    final availableForThisRole = maxSpecial - otherRolesCount;
-    final safeAvailable = math.max(role.min, availableForThisRole);
-
-    return math.min(role.max, safeAvailable);
+    return math.min(role.max, math.max(role.min, players - otherRolesCount));
   }
 
   void createRoom() {
     normalizeRoleCounts();
-
     if (!isValid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Konfiguracja gry jest niepoprawna.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konfiguracja gry jest niepoprawna.')));
       return;
     }
-
-    final hostName = hostNameController.text.trim().isEmpty
-        ? 'Gospodarz'
-        : hostNameController.text.trim();
-
-    final room = roomService.createRoom(
-      hostName: hostName,
-      maxPlayers: players,
-      roleCounts: roleCounts,
-    );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LobbyScreen(initialRoom: room, isHostView: true),
-      ),
-    );
+    final hostName = hostNameController.text.trim().isEmpty ? 'Gospodarz' : hostNameController.text.trim();
+    final room = roomService.createRoom(hostName: hostName, maxPlayers: players, roleCounts: roleCounts);
+    Navigator.push(context, MaterialPageRoute(builder: (_) => LobbyScreen(initialRoom: room, isHostView: true)));
   }
 
   @override
   Widget build(BuildContext context) {
     final roleSettings = <RoleSetting>[
-      RoleSetting(
-        name: 'Liczba graczy',
-        value: players,
-        min: 4,
-        max: 20,
-        onChanged: setPlayers,
-      ),
-      ...GameRoles.configurable.map((role) {
-        return RoleSetting(
-          name: role.name,
-          value: roleValue(role.type),
-          min: role.min,
-          max: maxForRole(role),
-          onChanged: (value) {
-            setRoleValue(role.type, value);
-          },
-        );
-      }),
+      RoleSetting(name: 'Liczba graczy', value: players, min: 4, max: 20, onChanged: setPlayers),
+      ...GameRoles.configurable.map((role) => RoleSetting(name: role.name, value: roleValue(role.type), min: role.min, max: maxForRole(role), onChanged: (value) => setRoleValue(role.type, value))),
     ];
-
     final summary = <RoleSummary>[
-      ...GameRoles.configurable.map((role) {
-        return RoleSummary(
-          name: role.name,
-          value: roleValue(role.type).toString(),
-        );
-      }),
-      RoleSummary(
-        name: GameRoles.nameOf(MafiaRoleCardType.citizen),
-        value: citizens.toString(),
-      ),
-      RoleSummary(
-        name: 'Łącznie role specjalne',
-        value: specialRoles.toString(),
-      ),
-      RoleSummary(
-        name: 'Status',
-        value: isValid ? 'Konfiguracja poprawna' : 'Za dużo ról',
-        valueColor: isValid ? Colors.greenAccent : Colors.redAccent,
-      ),
+      ...GameRoles.configurable.map((role) => RoleSummary(name: role.name, value: roleValue(role.type).toString())),
+      RoleSummary(name: GameRoles.nameOf(MafiaRoleCardType.citizen), value: citizens.toString()),
+      RoleSummary(name: 'Status', value: isValid ? 'Poprawna' : 'Za dużo ról', valueColor: isValid ? Colors.greenAccent : Colors.redAccent),
     ];
 
-    return Scaffold(
-      body: MafiaBackground(
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: Responsive.horizontalPadding(context),
-                  vertical: 18,
-                ),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - 36,
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: Responsive.contentMaxWidth(context),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          ScreenHeader(
-                            title: 'Hostowanie',
-                            icon: Icons.groups_rounded,
-                            onBack: () => Navigator.pop(context),
-                            showTitle: false,
-                            showIcon: true,
-                            largeIcon: true,
-                          ),
-
-                          SizedBox(
-                            height: Responsive.isSmall(context) ? 20 : 28,
-                          ),
-
-                          MafiaPanel(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SectionHeader(
-                                  title: 'Ustawienia pokoju',
-                                  icon: Icons.tune_rounded,
-                                  showIcon: false,
-                                ),
-
-                                const SizedBox(height: 20),
-
-                                MafiaTextField(
-                                  controller: hostNameController,
-                                  label: 'Nazwa gospodarza',
-                                  hint: 'np. Wiktor',
-                                  mutedText: false,
-                                ),
-
-                                const SizedBox(height: 18),
-
-                                ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxHeight: 300,
-                                  ),
-                                  child: ListView.separated(
-                                    shrinkWrap: true,
-                                    padding: EdgeInsets.zero,
-                                    physics: const ClampingScrollPhysics(),
-                                    itemCount: roleSettings.length,
-                                    separatorBuilder: (context, index) =>
-                                        const SizedBox(height: 8),
-                                    itemBuilder: (context, index) {
-                                      final role = roleSettings[index];
-
-                                      return CounterSetting(
-                                        title: role.name,
-                                        value: role.value,
-                                        min: role.min,
-                                        max: role.max,
-                                        onChanged: role.onChanged,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          SizedBox(
-                            height: Responsive.isSmall(context) ? 18 : 24,
-                          ),
-
-                          MafiaPanel(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SectionHeader(
-                                  title: 'Podsumowanie ról',
-                                  icon: Icons.analytics_outlined,
-                                  showIcon: false,
-                                ),
-
-                                const SizedBox(height: 18),
-
-                                ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxHeight: 230,
-                                  ),
-                                  child: SingleChildScrollView(
-                                    child: Column(
-                                      children: summary.map<Widget>((item) {
-                                        return SummaryText(
-                                          label: item.name,
-                                          value: item.value,
-                                          valueColor: item.valueColor,
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          SizedBox(
-                            height: Responsive.isSmall(context) ? 22 : 30,
-                          ),
-
-                          MafiaButton(
-                            text: 'Utwórz',
-                            icon: Icons.arrow_forward_rounded,
-                            onPressed: createRoom,
-                          ),
-                        ],
-                      ),
+    return MafiaIOSScaffold(
+      child: LayoutBuilder(builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(Responsive.horizontalPadding(context), 14, Responsive.horizontalPadding(context), 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight - 38),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: Column(
+                  children: [
+                    Row(children: [IOSBackButton(onTap: () => Navigator.pop(context)), const Expanded(child: LockClock(subtitle: 'Nowy pokój')), const SizedBox(width: 50)]),
+                    const SizedBox(height: 22),
+                    LockNotificationTile(title: 'Mafia', subtitle: 'Panel gospodarza', trailingIcon: Icons.local_activity_rounded, onTap: createRoom),
+                    const SizedBox(height: 12),
+                    LockGlassPanel(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Nazwa gospodarza', style: TextStyle(color: AppColors.white.withValues(alpha: .74), fontSize: 13, fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 10),
+                        LockTextField(controller: hostNameController, hint: 'np. Wiktor'),
+                        const SizedBox(height: 16),
+                        ...roleSettings.map((role) => Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: LockCounterRow(title: role.name, value: role.value, min: role.min, max: role.max, onChanged: role.onChanged),
+                            )),
+                      ]),
                     ),
-                  ),
+                    const SizedBox(height: 14),
+                    LockGlassPanel(
+                      opacity: .14,
+                      child: Column(children: summary.map((item) => _SummaryLine(label: item.name, value: item.value, valueColor: item.valueColor)).toList()),
+                    ),
+                    const SizedBox(height: 18),
+                    LockButton(text: 'Utwórz pokój', icon: Icons.arrow_upward_rounded, light: true, onTap: createRoom),
+                  ],
                 ),
-              );
-            },
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      }),
+    );
+  }
+}
+
+class _SummaryLine extends StatelessWidget {
+  const _SummaryLine({required this.label, required this.value, this.valueColor});
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(children: [
+        Expanded(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.white.withValues(alpha: .64), fontSize: 15, fontWeight: FontWeight.w800))),
+        Text(value, style: TextStyle(color: valueColor ?? AppColors.white, fontSize: 15, fontWeight: FontWeight.w900)),
+      ]),
     );
   }
 }

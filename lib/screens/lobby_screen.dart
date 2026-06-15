@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
 import '../core/app_colors.dart';
 import '../core/responsive.dart';
 import '../data/card.dart';
@@ -10,16 +8,12 @@ import '../models/role_summary.dart';
 import '../models/room_status.dart';
 import '../services/local_room_service.dart';
 import '../services/room_service.dart';
+import '../ui_system/mafia_ios_system.dart';
 import '../widgets/shared_widgets.dart';
 import 'started_game_screen.dart';
 
 class LobbyScreen extends StatefulWidget {
-  const LobbyScreen({
-    super.key,
-    required this.initialRoom,
-    required this.isHostView,
-  });
-
+  const LobbyScreen({super.key, required this.initialRoom, required this.isHostView});
   final GameRoom initialRoom;
   final bool isHostView;
 
@@ -29,9 +23,7 @@ class LobbyScreen extends StatefulWidget {
 
 class _LobbyScreenState extends State<LobbyScreen> {
   late GameRoom room;
-
   final RoomService roomService = const LocalRoomService();
-
   int testPlayerNumber = 1;
 
   @override
@@ -40,26 +32,13 @@ class _LobbyScreenState extends State<LobbyScreen> {
     room = widget.initialRoom;
   }
 
-  int get citizensCount {
-    return GameRoles.citizensCount(
-      players: room.maxPlayers,
-      roleCounts: room.roleCounts,
-    );
-  }
+  int get citizensCount => GameRoles.citizensCount(players: room.maxPlayers, roleCounts: room.roleCounts);
 
-  void showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
+  void showMessage(String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 
   void addTestPlayer() {
     try {
-      final updatedRoom = roomService.addPlayer(
-        room: room,
-        playerName: 'Gracz $testPlayerNumber',
-      );
-
+      final updatedRoom = roomService.addPlayer(room: room, playerName: 'Gracz $testPlayerNumber');
       setState(() {
         room = updatedRoom;
         testPlayerNumber++;
@@ -71,35 +50,16 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   Future<void> startGame() async {
     final error = roomService.startGameError(room);
-
     if (error != null) {
       showMessage(error);
       return;
     }
-
     try {
       final startedRoom = roomService.startGame(room);
-
-      setState(() {
-        room = startedRoom;
-      });
-
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              const RoleRevealScreen(roleType: MafiaRoleCardType.host),
-        ),
-      );
-
+      setState(() => room = startedRoom);
+      await Navigator.push(context, MaterialPageRoute(builder: (_) => const RoleRevealScreen(roleType: MafiaRoleCardType.host)));
       if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => StartedGameScreen(room: startedRoom),
-        ),
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => StartedGameScreen(room: startedRoom)));
     } catch (error) {
       showMessage(error.toString().replaceFirst('Exception: ', ''));
     }
@@ -108,248 +68,84 @@ class _LobbyScreenState extends State<LobbyScreen> {
   @override
   Widget build(BuildContext context) {
     final roleSummary = <RoleSummary>[
-      ...GameRoles.configurable.map((role) {
-        return RoleSummary(
-          name: role.name,
-          value: GameRoles.countOf(room.roleCounts, role.type).toString(),
+      ...GameRoles.configurable.map((role) => RoleSummary(name: role.name, value: GameRoles.countOf(room.roleCounts, role.type).toString())),
+      RoleSummary(name: GameRoles.nameOf(MafiaRoleCardType.citizen), value: citizensCount.toString()),
+    ];
+    return MafiaIOSScaffold(
+      child: LayoutBuilder(builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(Responsive.horizontalPadding(context), 14, Responsive.horizontalPadding(context), 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight - 38),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: Column(children: [
+                  Row(children: [IOSBackButton(onTap: () => Navigator.pop(context)), const Expanded(child: LockClock(subtitle: 'Lobby')), const SizedBox(width: 50)]),
+                  const SizedBox(height: 22),
+                  LockNotificationTile(title: 'Kod pokoju', subtitle: room.roomCode, trailingIcon: Icons.key_rounded, onTap: () {}),
+                  const SizedBox(height: 12),
+                  LockGlassPanel(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [Expanded(child: Text('Gracze', style: TextStyle(color: AppColors.white.withValues(alpha: .90), fontSize: 18, fontWeight: FontWeight.w900))), Text('${room.players.length}/${room.maxPlayers}', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w900))]),
+                      const SizedBox(height: 12),
+                      _PlayerLine(name: room.hostName, isHost: true),
+                      ...room.players.map((player) => _PlayerLine(name: player.name, isHost: false)),
+                      for (var i = 0; i < room.emptySlots; i++) _EmptyLine(number: room.players.length + i + 1),
+                    ]),
+                  ),
+                  const SizedBox(height: 14),
+                  LockGlassPanel(opacity: .14, child: Column(children: roleSummary.map((item) => _SummaryLine(label: item.name, value: item.value)).toList())),
+                  const SizedBox(height: 18),
+                  if (widget.isHostView && room.status == RoomStatus.waiting) ...[
+                    LockButton(text: 'Dodaj gracza testowego', icon: Icons.person_add_alt_rounded, onTap: addTestPlayer),
+                    const SizedBox(height: 12),
+                    LockButton(text: 'Start gry', icon: Icons.play_arrow_rounded, light: true, onTap: startGame),
+                  ] else
+                    Text('Czekaj na start gry...', style: TextStyle(color: AppColors.white.withValues(alpha: .70), fontWeight: FontWeight.w800)),
+                ]),
+              ),
+            ),
+          ),
         );
       }),
-      RoleSummary(
-        name: GameRoles.nameOf(MafiaRoleCardType.citizen),
-        value: citizensCount.toString(),
-      ),
-    ];
-
-    return Scaffold(
-      body: MafiaBackground(
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: Responsive.horizontalPadding(context),
-                  vertical: 18,
-                ),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - 36,
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: Responsive.contentMaxWidth(context),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          ScreenHeader(
-                            title: 'Lobby',
-                            icon: Icons.meeting_room_rounded,
-                            onBack: () => Navigator.pop(context),
-                            showTitle: true,
-                            showIcon: false,
-                          ),
-
-                          SizedBox(
-                            height: Responsive.isSmall(context) ? 18 : 28,
-                          ),
-
-                          MafiaPanel(
-                            child: Column(
-                              children: [
-                                SectionHeader(
-                                  title: 'Kod pokoju',
-                                  icon: Icons.key_rounded,
-                                  showIcon: false,
-                                ),
-
-                                const SizedBox(height: 14),
-
-                                SelectableText(
-                                  room.roomCode,
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.cinzel(
-                                    color: AppColors.neonWhite,
-                                    fontSize: Responsive.isSmall(context)
-                                        ? 36
-                                        : 46,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 6,
-                                    shadows: const [
-                                      Shadow(
-                                        color: Colors.white,
-                                        blurRadius: 6,
-                                      ),
-                                      Shadow(
-                                        color: Colors.black,
-                                        blurRadius: 12,
-                                        offset: Offset(3, 3),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                const SizedBox(height: 10),
-
-                                Text(
-                                  room.status == RoomStatus.waiting
-                                      ? 'Przekaż ten kod graczom.'
-                                      : 'Gra została rozpoczęta.',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.cormorantGaramond(
-                                    color: Colors.white70,
-                                    fontSize: Responsive.isSmall(context)
-                                        ? 18
-                                        : 20,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          SizedBox(
-                            height: Responsive.isSmall(context) ? 18 : 24,
-                          ),
-
-                          MafiaPanel(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: SectionHeader(
-                                        title: 'Gracze',
-                                        icon: Icons.people_alt_outlined,
-                                        showIcon: false,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${room.players.length}/${room.maxPlayers}',
-                                      style: GoogleFonts.cinzel(
-                                        color: AppColors.neonWhite,
-                                        fontSize: Responsive.isSmall(context)
-                                            ? 20
-                                            : 24,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                const SizedBox(height: 16),
-
-                                LobbyPlayerTile(
-                                  name: room.hostName,
-                                  isHost: true,
-                                ),
-
-                                ...room.players.map<Widget>((player) {
-                                  return LobbyPlayerTile(
-                                    name: player.name,
-                                    isHost: false,
-                                  );
-                                }),
-
-                                for (var i = 0; i < room.emptySlots; i++)
-                                  EmptyPlayerSlot(
-                                    slotNumber: room.players.length + i + 1,
-                                  ),
-                              ],
-                            ),
-                          ),
-
-                          SizedBox(
-                            height: Responsive.isSmall(context) ? 18 : 24,
-                          ),
-
-                          MafiaPanel(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SectionHeader(
-                                  title: 'Podsumowanie ról',
-                                  icon: Icons.analytics_outlined,
-                                  showIcon: false,
-                                ),
-
-                                const SizedBox(height: 18),
-
-                                ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxHeight: 220,
-                                  ),
-                                  child: SingleChildScrollView(
-                                    child: Column(
-                                      children: roleSummary.map<Widget>((item) {
-                                        return SummaryText(
-                                          label: item.name,
-                                          value: item.value,
-                                          valueColor: item.valueColor,
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          SizedBox(
-                            height: Responsive.isSmall(context) ? 22 : 30,
-                          ),
-
-                          if (widget.isHostView &&
-                              room.status == RoomStatus.waiting) ...[
-                            MafiaButton(
-                              text: 'Dodaj gracza testowego',
-                              icon: Icons.person_add_alt_rounded,
-                              onPressed: addTestPlayer,
-                            ),
-                            const SizedBox(height: 14),
-                            MafiaButton(
-                              text: 'Start gry',
-                              icon: Icons.play_arrow_rounded,
-                              onPressed: startGame,
-                            ),
-                          ] else if (room.status == RoomStatus.inProgress)
-                            MafiaButton(
-                              text: 'Karta gospodarza',
-                              icon: Icons.style_rounded,
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const RoleRevealScreen(
-                                          roleType: MafiaRoleCardType.host,
-                                        ),
-                                  ),
-                                );
-                              },
-                            )
-                          else
-                            Text(
-                              'Czekaj na start gry...',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.cormorantGaramond(
-                                color: Colors.white70,
-                                fontSize: Responsive.isSmall(context) ? 20 : 24,
-                                fontStyle: FontStyle.italic,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
     );
   }
+}
+
+class _PlayerLine extends StatelessWidget {
+  const _PlayerLine({required this.name, required this.isHost});
+  final String name;
+  final bool isHost;
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.only(bottom: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .10), borderRadius: BorderRadius.circular(16)),
+        child: Row(children: [Icon(isHost ? Icons.local_activity_rounded : Icons.person_rounded, color: AppColors.white, size: 20), const SizedBox(width: 10), Expanded(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w900))), if (isHost) const Text('HOST', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.w900, fontSize: 12))]),
+      );
+}
+
+class _EmptyLine extends StatelessWidget {
+  const _EmptyLine({required this.number});
+  final int number;
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.only(bottom: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .20), borderRadius: BorderRadius.circular(16)),
+        child: Text('Wolne miejsce $number', style: TextStyle(color: AppColors.white.withValues(alpha: .45), fontWeight: FontWeight.w800)),
+      );
+}
+
+class _SummaryLine extends StatelessWidget {
+  const _SummaryLine({required this.label, required this.value});
+  final String label;
+  final String value;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(children: [Expanded(child: Text(label, style: TextStyle(color: AppColors.white.withValues(alpha: .64), fontWeight: FontWeight.w800))), Text(value, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w900))]),
+      );
 }
