@@ -11,9 +11,9 @@ class MafiaPhoneAssets {
   const MafiaPhoneAssets._();
 
   // Jeśli Twoje pliki w assets mają inne nazwy, zmień tylko te ścieżki.
-  static const String redCard = 'assets/images/cards/mafia_red.png';
-  static const String blueCard = 'assets/images/cards/mafia_blue.png';
-  static const String powerCard = 'assets/images/cards/power_blue.png';
+  static const String redCard = 'assets/images/card/1.jpg';
+  static const String blueCard = 'assets/images/card/1.jpg';
+  static const String powerCard = 'assets/images/card/1.jpg';
 }
 
 class MafiaPhoneBackground extends StatefulWidget {

@@ -57,7 +57,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
     try {
       final startedRoom = roomService.startGame(room);
       setState(() => room = startedRoom);
-      await Navigator.push(context, MaterialPageRoute(builder: (_) => const RoleRevealScreen(roleType: MafiaRoleCardType.host)));
+      await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const RoleRevealScreen(roleType: MafiaRoleCardType.host)));
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => StartedGameScreen(room: startedRoom)));
     } catch (error) {
@@ -134,8 +134,16 @@ class _EmptyLine extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         margin: const EdgeInsets.only(bottom: 9),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-        decoration: BoxDecoration(color: Colors.black.withValues(alpha: .20), borderRadius: BorderRadius.circular(16)),
-        child: Text('Wolne miejsce $number', style: TextStyle(color: AppColors.white.withValues(alpha: .45), fontWeight: FontWeight.w800)),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(children: [
+          Icon(Icons.person_add_alt_rounded, color: AppColors.white.withValues(alpha: .52), size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text('Wolne miejsce $number', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.white.withValues(alpha: .58), fontWeight: FontWeight.w900))),
+          Text('PUSTE', style: TextStyle(color: AppColors.white.withValues(alpha: .34), fontWeight: FontWeight.w900, fontSize: 12)),
+        ]),
       );
 }
 

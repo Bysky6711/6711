@@ -108,15 +108,15 @@ class _HomeState extends State<_Home> {
 
   List<_HomeIconData> _buildIcons() => [
         _HomeIconData('ustawienia', Icons.settings_rounded, widget.onSettings),
-        _HomeIconData('chat', Icons.send_rounded, widget.onMessages, badge: 1),
-        _HomeIconData('moja karta', Icons.style_rounded, widget.onMyCard, assetPath: MafiaAssets.mafiaClassCard, color: MafiaPlayingCardColor.red),
-        _HomeIconData('karty mocy', Icons.auto_awesome_rounded, widget.onPower, assetPath: MafiaAssets.defaultCard, color: MafiaPlayingCardColor.blue),
-        _HomeIconData('avatar', Icons.person_rounded, widget.onAvatar),
-        _HomeIconData('zadania', Icons.extension_rounded, widget.onTasks),
-        _HomeIconData('notatki', Icons.edit_rounded, widget.onNotes),
         _HomeIconData('zasady', Icons.description_outlined, widget.onRules),
+        _HomeIconData('notatki', Icons.edit_rounded, widget.onNotes),
+        _HomeIconData('avatar', Icons.person_rounded, widget.onAvatar),
+        _HomeIconData('wiadomości', Icons.send_rounded, widget.onMessages, badge: 1),
+        _HomeIconData('zadania', Icons.extension_rounded, widget.onTasks),
         _HomeIconData('premium', Icons.workspace_premium_rounded, widget.onPremium, isPremium: true),
         _HomeIconData('menu', Icons.home_rounded, () => Navigator.popUntil(context, (route) => route.isFirst)),
+        _HomeIconData('karty mocy', Icons.auto_awesome_rounded, widget.onPower, assetPath: MafiaAssets.defaultCard, color: MafiaPlayingCardColor.blue),
+        _HomeIconData('moja karta', Icons.style_rounded, widget.onMyCard, assetPath: MafiaAssets.mafiaClassCard, color: MafiaPlayingCardColor.red),
       ];
 
   void _moveIcon(int from, int to) {
@@ -125,13 +125,19 @@ class _HomeState extends State<_Home> {
     setState(() {
       final item = icons.removeAt(from);
       icons.insert(to, item);
+      _pinCardIconsToBottom();
     });
+  }
+
+  void _pinCardIconsToBottom() {
+    final cards = icons.where((item) => item.assetPath != null).toList();
+    icons.removeWhere((item) => item.assetPath != null);
+    icons.addAll(cards);
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final columns = width >= 520 ? 5 : 4;
+    final columns = MediaQuery.sizeOf(context).width >= 520 ? 5 : 4;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -188,10 +194,10 @@ class _HomeState extends State<_Home> {
                 itemBuilder: (context, index) {
                   final item = icons[index];
                   return DragTarget<int>(
-                    onWillAccept: (from) => from != index,
+                    onWillAccept: (from) => from != index && item.assetPath == null,
                     onAccept: (from) => _moveIcon(from, index),
                     builder: (context, candidate, rejected) {
-                      final highlighted = candidate.isNotEmpty;
+                      final highlighted = candidate.isNotEmpty && item.assetPath == null;
                       return AnimatedScale(
                         scale: highlighted ? 1.08 : 1,
                         duration: const Duration(milliseconds: 160),

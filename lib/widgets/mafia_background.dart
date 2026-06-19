@@ -7,7 +7,7 @@ class MafiaBackground extends StatelessWidget {
 
   final Widget child;
 
-  static const String backgroundPath = 'assets/images/backgrounds/miasto.jpg';
+  static const String backgroundPath = 'assets/images/backgrounds/new_background.jpg';
 
   @override
   Widget build(BuildContext context) {

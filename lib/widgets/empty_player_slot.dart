@@ -15,12 +15,12 @@ class EmptyPlayerSlot extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: EdgeInsets.symmetric(
         horizontal: Responsive.isSmall(context) ? 12 : 14,
-        vertical: Responsive.isSmall(context) ? 10 : 12,
+        vertical: 11,
       ),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.32),
+        color: Colors.white.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.frame.withValues(alpha: 0.55)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Row(
         children: [

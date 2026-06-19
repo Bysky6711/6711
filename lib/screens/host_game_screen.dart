@@ -117,7 +117,7 @@ class _HostGameScreenState extends State<HostGameScreen> {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text('Nazwa gospodarza', style: TextStyle(color: AppColors.white.withValues(alpha: .74), fontSize: 13, fontWeight: FontWeight.w900)),
                         const SizedBox(height: 10),
-                        LockTextField(controller: hostNameController, hint: 'np. Wiktor'),
+                        LockTextField(controller: hostNameController, hint: 'Twój nick'),
                         const SizedBox(height: 16),
                         ...roleSettings.map((role) => Padding(
                               padding: const EdgeInsets.only(bottom: 10),

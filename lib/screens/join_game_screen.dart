@@ -91,7 +91,7 @@ class _NameStep extends StatelessWidget {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('Nazwa gracza', style: TextStyle(color: AppColors.white.withValues(alpha: .76), fontSize: 13, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 10),
-                    LockTextField(controller: controller, hint: 'Nazwa urz.', onSubmitted: (_) => onSubmit()),
+                    LockTextField(controller: controller, hint: 'Twój nick', onSubmitted: (_) => onSubmit()),
                     const SizedBox(height: 14),
                     LockButton(text: 'Dalej', icon: Icons.arrow_forward_rounded, light: true, onTap: onSubmit),
                   ]),
