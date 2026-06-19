@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import '../core/app_colors.dart';
 import '../core/responsive.dart';
 import '../ui_system/mafia_ios_system.dart';
@@ -8,278 +10,412 @@ import 'roles.dart';
 
 class RoleRevealScreen extends StatefulWidget {
   const RoleRevealScreen({super.key, required this.roleType, this.imagePath});
+
   final MafiaRoleCardType roleType;
   final String? imagePath;
+
   @override
   State<RoleRevealScreen> createState() => _RoleRevealScreenState();
 }
 
-class _RoleRevealScreenState extends State<RoleRevealScreen> with TickerProviderStateMixin {
-  late final AnimationController flipController;
+class _RoleRevealScreenState extends State<RoleRevealScreen>
+    with TickerProviderStateMixin {
   late final AnimationController burnController;
-  late final Animation<double> burnSweep;
-  bool revealed = false;
+  late final AnimationController particleController;
+  late final AnimationController floatController;
+
   bool burning = false;
+  bool done = false;
 
   @override
   void initState() {
     super.initState();
-    flipController = AnimationController(vsync: this, duration: const Duration(milliseconds: 560));
-    burnController = AnimationController(vsync: this, duration: const Duration(seconds: 3));
-    burnSweep = Tween<double>(begin: -0.35, end: 1.35).animate(CurvedAnimation(parent: burnController, curve: Curves.easeInOutCubic));
+    burnController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3500),
+    );
+    particleController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 90),
+    )..repeat();
+    floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
-    flipController.dispose();
     burnController.dispose();
+    particleController.dispose();
+    floatController.dispose();
     super.dispose();
   }
 
   String get roleName => GameRoles.nameOf(widget.roleType);
-  MafiaPlayingCardColor get cardColor => widget.roleType == MafiaRoleCardType.mafia ? MafiaPlayingCardColor.red : MafiaPlayingCardColor.blue;
-  String get assetPath => widget.imagePath ?? (cardColor == MafiaPlayingCardColor.red ? MafiaAssets.redCard : MafiaAssets.blueCard);
 
-  Future<void> revealAndBurn() async {
-    if (revealed) return;
-    setState(() => revealed = true);
-    await flipController.forward();
-    await Future<void>.delayed(const Duration(milliseconds: 650));
-    if (!mounted) return;
+  String get assetPath {
+    if (widget.imagePath != null) return widget.imagePath!;
+    switch (widget.roleType) {
+      case MafiaRoleCardType.host:
+      case MafiaRoleCardType.mafia:
+        return MafiaAssets.mafiaClassCard;
+      case MafiaRoleCardType.detective:
+        return 'assets/images/card/card_class_detektyw.jpg';
+      case MafiaRoleCardType.sheriff:
+        return 'assets/images/card/card_class_szeryf.jpg';
+      case MafiaRoleCardType.citizen:
+        return 'assets/images/card/card_class_obywatel.jpg';
+      case MafiaRoleCardType.doctor:
+        return 'assets/images/card/2.jpg';
+    }
+  }
+
+  Future<void> burnAndClose() async {
+    if (burning || done) return;
+    HapticFeedback.mediumImpact();
     setState(() => burning = true);
     await burnController.forward();
     if (!mounted) return;
-    Navigator.pop(context);
+    setState(() => done = true);
+    HapticFeedback.heavyImpact();
+    await Future<void>.delayed(const Duration(milliseconds: 260));
+    if (mounted) Navigator.of(context).pop(true);
   }
 
   @override
   Widget build(BuildContext context) {
     return MafiaIOSScaffold(
-      child: LayoutBuilder(builder: (context, constraints) {
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(Responsive.horizontalPadding(context), 14, Responsive.horizontalPadding(context), 24),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight - 38),
-            child: Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Align(alignment: Alignment.centerLeft, child: IOSBackButton(onTap: () => Navigator.pop(context))),
-                LockClock(subtitle: burning ? 'Karta spala się...' : revealed ? roleName : 'Dotknij kartę'),
-                const SizedBox(height: 34),
-                PressableScale(
-                  onTap: revealAndBurn,
-                  haptic: HapticFeedbackType.medium,
-                  pressedScale: .98,
-                  child: AnimatedBuilder(
-                    animation: Listenable.merge([flipController, burnController]),
-                    builder: (context, _) {
-                      final flip = Curves.easeOutCubic.transform(flipController.value);
-                      final angle = flip * math.pi;
-                      final front = angle > math.pi / 2;
-                      final burn = Curves.easeInOutCubic.transform(burnController.value);
-                      return Opacity(
-                        opacity: (1 - burn * .92).clamp(0.0, 1.0),
-                        child: Transform.translate(
-                          offset: Offset(0, -burn * 38),
-                          child: Transform.scale(
-                            scale: 1 - burn * .08,
-                            child: Stack(alignment: Alignment.center, children: [
-                              Transform(
-                                alignment: Alignment.center,
-                                transform: Matrix4.identity()..setEntry(3, 2, .0014)..rotateY(angle),
-                                child: front
-                                    ? Transform(
-                                        alignment: Alignment.center,
-                                        transform: Matrix4.identity()..rotateY(math.pi),
-                                        child: _BurningCardFace(assetPath: assetPath, color: cardColor, roleName: roleName, burn: burn, sweep: burnSweep.value),
-                                      )
-                                    : _CardBack(assetPath: MafiaAssets.redCard, burn: burn, sweep: burnSweep.value),
-                              ),
-                              if (burning) ...List.generate(42, (i) => _FireParticle(progress: burn, index: i)),
-                              if (burning) CustomPaint(size: const Size(330, 470), painter: _EmberPainter(progress: burn)),
-                            ]),
-                          ),
-                        ),
-                      );
-                    },
+      darkOverlay: .10,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              Responsive.horizontalPadding(context),
+              12,
+              Responsive.horizontalPadding(context),
+              24,
+            ),
+            child: Column(
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IOSBackButton(onTap: () => Navigator.pop(context, false)),
+                ),
+                const SizedBox(height: 8),
+                LockClock(
+                  subtitle: burning ? 'Karta spala się…' : 'Dotknij kartę, aby ją spalić',
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: burnAndClose,
+                      child: AnimatedBuilder(
+                        animation: Listenable.merge([
+                          burnController,
+                          particleController,
+                          floatController,
+                        ]),
+                        builder: (context, _) {
+                          final burn = burnController.value;
+                          final floatY = math.sin(floatController.value * math.pi * 2) * 8;
+                          final shake = burn > .82 && burn < 1
+                              ? math.sin(particleController.value * math.pi * 900) * 2.2
+                              : 0.0;
+                          final fade = done ? 0.0 : 1.0;
+
+                          return SizedBox(
+                            width: 600,
+                            height: 700,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              clipBehavior: Clip.none,
+                              children: [
+                                Positioned.fill(
+                                  child: IgnorePointer(
+                                    child: CustomPaint(
+                                      painter: _BurnParticlePainter(
+                                        progress: burn,
+                                        time: particleController.value,
+                                        active: burning || done,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Transform.translate(
+                                  offset: Offset(shake, floatY - burn * 10),
+                                  child: Transform.scale(
+                                    scale: 1 - burn * .08,
+                                    child: Opacity(
+                                      opacity: fade,
+                                      child: _BurningRoleCard(
+                                        assetPath: assetPath,
+                                        roleName: roleName,
+                                        progress: burn,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                if (done) const _FlashMark(),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                Text(revealed ? '' : 'Karta pokaże się tylko raz', style: TextStyle(color: AppColors.white.withValues(alpha: .62), fontWeight: FontWeight.w800)),
-              ]),
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 220),
+                  opacity: burning ? 0 : 1,
+                  child: Text(
+                    'Karta jest już odsłonięta — stuknij, aby spalić',
+                    style: TextStyle(
+                      color: AppColors.white.withValues(alpha: .48),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: .4,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _CardBack extends StatelessWidget {
-  const _CardBack({required this.assetPath, required this.burn, required this.sweep});
-  final String assetPath;
-  final double burn;
-  final double sweep;
-  @override
-  Widget build(BuildContext context) {
-    return ClipPath(
-      clipper: _BurnClipper(progress: burn),
-      child: ShaderMask(
-        blendMode: BlendMode.srcATop,
-        shaderCallback: (bounds) => _burnShader(bounds, sweep),
-        child: ClipRRect(borderRadius: BorderRadius.circular(22), child: SizedBox(width: 280, height: 414, child: CardAsset(assetPath: assetPath, fallbackColor: MafiaPlayingCardColor.red))),
+          );
+        },
       ),
     );
   }
 }
 
-class _BurningCardFace extends StatelessWidget {
-  const _BurningCardFace({required this.assetPath, required this.color, required this.roleName, required this.burn, required this.sweep});
+class _BurningRoleCard extends StatelessWidget {
+  const _BurningRoleCard({
+    required this.assetPath,
+    required this.roleName,
+    required this.progress,
+  });
+
   final String assetPath;
-  final MafiaPlayingCardColor color;
   final String roleName;
-  final double burn;
-  final double sweep;
+  final double progress;
+
   @override
   Widget build(BuildContext context) {
-    return ClipPath(
-      clipper: _BurnClipper(progress: burn),
-      child: Stack(alignment: Alignment.center, children: [
-        ShaderMask(
-          blendMode: BlendMode.srcATop,
-          shaderCallback: (bounds) => _burnShader(bounds, sweep),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: SizedBox(
-              width: 280,
-              height: 414,
-              child: ColorFiltered(
-                colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: burn * .48), BlendMode.darken),
-                child: CardAsset(assetPath: assetPath, fallbackColor: color),
+    final radius = BorderRadius.circular(24);
+    return SizedBox(
+      width: 240,
+      height: 330,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: radius,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF2B1C18), Color(0xFF1C1310)],
+                ),
               ),
             ),
           ),
-        ),
-        Positioned(bottom: 34, child: Container(padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10), decoration: BoxDecoration(color: AppColors.glassDark, borderRadius: BorderRadius.circular(14)), child: Text(roleName.toUpperCase(), style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2)))),
-        if (burn > 0) Positioned.fill(child: CustomPaint(painter: _BurnEdgePainter(progress: burn))),
-      ]),
-    );
-  }
-}
-
-Shader _burnShader(Rect bounds, double value) {
-  return LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    stops: [
-      (value - .24).clamp(0.0, 1.0),
-      (value - .10).clamp(0.0, 1.0),
-      value.clamp(0.0, 1.0),
-      (value + .07).clamp(0.0, 1.0),
-    ],
-    colors: [
-      Colors.black.withValues(alpha: .88),
-      Colors.red.withValues(alpha: .85),
-      Colors.orangeAccent,
-      Colors.white,
-    ],
-  ).createShader(bounds);
-}
-
-class _BurnClipper extends CustomClipper<Path> {
-  _BurnClipper({required this.progress});
-  final double progress;
-  @override
-  Path getClip(Size size) {
-    final p = progress.clamp(0.0, 1.0);
-    final burnY = size.height * (1 - p * .96);
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width, burnY);
-    for (var i = 0; i <= 22; i++) {
-      final x = size.width - (i / 22) * size.width;
-      final wave = math.sin(i * 1.6 + p * 12) * 12 + math.sin(i * .77) * 6;
-      path.lineTo(x, burnY + wave);
-    }
-    path
-      ..lineTo(0, 0)
-      ..close();
-    return path;
-  }
-  @override
-  bool shouldReclip(covariant _BurnClipper oldClipper) => oldClipper.progress != progress;
-}
-
-class _BurnEdgePainter extends CustomPainter {
-  _BurnEdgePainter({required this.progress});
-  final double progress;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final burnY = size.height * (1 - progress * .96);
-    final path = Path()..moveTo(0, burnY);
-    for (var i = 0; i <= 28; i++) {
-      final x = i / 28 * size.width;
-      final y = burnY + math.sin(i * 1.4 + progress * 12) * 11;
-      path.lineTo(x, y);
-    }
-    canvas.drawPath(
-      path,
-      Paint()
-        ..shader = LinearGradient(
-          colors: [Colors.deepOrange.withValues(alpha: .1), Colors.deepOrange.withValues(alpha: .95), Colors.yellowAccent.withValues(alpha: .70)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ).createShader(Rect.fromLTWH(0, burnY - 30, size.width, 60))
-        ..strokeWidth = 5
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-  @override
-  bool shouldRepaint(covariant _BurnEdgePainter oldDelegate) => oldDelegate.progress != progress;
-}
-
-class _FireParticle extends StatelessWidget {
-  const _FireParticle({required this.progress, required this.index});
-  final double progress;
-  final int index;
-  @override
-  Widget build(BuildContext context) {
-    final opacity = (1 - progress).clamp(0.0, 1.0);
-    final dx = math.sin(index * 7.1) * 118 * progress;
-    final dy = -progress * (90 + (index % 7) * 28);
-    final size = 3.0 + (index % 6) * 2;
-    return Transform.translate(
-      offset: Offset(dx, dy + 120 * (1 - progress)),
-      child: Opacity(
-        opacity: opacity,
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: index.isEven ? Colors.deepOrangeAccent : Colors.amberAccent,
-            boxShadow: [BoxShadow(color: Colors.deepOrange.withValues(alpha: .8), blurRadius: 14)],
+          ClipPath(
+            clipper: _JaggedBurnClipper(progress: progress),
+            child: ShaderMask(
+              blendMode: BlendMode.srcATop,
+              shaderCallback: (rect) => LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withValues(alpha: .82),
+                  const Color(0xFFFF7A3C).withValues(alpha: .20),
+                  Colors.transparent,
+                ],
+                stops: [
+                  (progress - .08).clamp(0.0, 1.0).toDouble(),
+                  progress.clamp(0.0, 1.0).toDouble(),
+                  (progress + .20).clamp(0.0, 1.0).toDouble(),
+                ],
+              ).createShader(rect),
+              child: ClipRRect(
+                borderRadius: radius,
+                child: Image.asset(
+                  assetPath,
+                  width: 240,
+                  height: 330,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: const Color(0xFF241010),
+                    alignment: Alignment.center,
+                    child: Text(
+                      roleName.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 28,
+                        letterSpacing: 1.6,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
+          IgnorePointer(
+            child: CustomPaint(
+              size: const Size(240, 330),
+              painter: _BurnEdgePainter(progress: progress),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _EmberPainter extends CustomPainter {
-  _EmberPainter({required this.progress});
+class _JaggedBurnClipper extends CustomClipper<Path> {
+  const _JaggedBurnClipper({required this.progress});
+
   final double progress;
+
+  double _ease(double t) {
+    if (t < .15) return (t / .15) * .10;
+    return (.10 + math.pow((t - .15) / .85, 1.8) * .90).toDouble();
+  }
+
+  @override
+  Path getClip(Size size) {
+    final eased = _ease(progress.clamp(0.0, 1.0).toDouble());
+    final baseY = size.height * (1 - eased * 1.25);
+    final amp = 12 + progress * 18;
+    final path = Path()..moveTo(0, size.height);
+    path.lineTo(0, baseY);
+
+    const points = 20;
+    for (var i = 0; i <= points; i++) {
+      final x = size.width * i / points;
+      final wave = math.sin(i * 1.5 + progress * 20) * amp +
+          math.sin(i * 3.5 - progress * 12) * amp * .45 +
+          math.sin(i * 8.2 + progress * 24) * amp * .22;
+      path.lineTo(x, baseY + wave);
+    }
+
+    path.lineTo(size.width, size.height);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant _JaggedBurnClipper oldClipper) {
+    return oldClipper.progress != progress;
+  }
+}
+
+class _BurnEdgePainter extends CustomPainter {
+  const _BurnEdgePainter({required this.progress});
+
+  final double progress;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.orangeAccent.withValues(alpha: (1 - progress) * .55);
+    if (progress <= 0 || progress >= 1) return;
+    final eased = Curves.easeInCubic.transform(progress.clamp(0.0, 1.0).toDouble());
+    final y = size.height * (1 - eased * 1.14);
+    final rect = Rect.fromLTWH(-34, y - 34, size.width + 68, 82);
+    final glow = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.transparent,
+          Color(0xFFFFD166),
+          Color(0xFFFF7A3C),
+          Color(0xFFD62330),
+          Colors.transparent,
+        ],
+      ).createShader(rect)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12)
+      ..blendMode = BlendMode.screen;
+    canvas.drawRect(
+      rect,
+      glow..color = glow.color.withValues(alpha: (progress * 3).clamp(0.0, 1.0).toDouble()),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BurnEdgePainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
+
+class _BurnParticlePainter extends CustomPainter {
+  const _BurnParticlePainter({
+    required this.progress,
+    required this.time,
+    required this.active,
+  });
+
+  final double progress;
+  final double time;
+  final bool active;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (!active || progress <= 0) return;
+    final rnd = math.Random(12);
+    final centerX = size.width / 2;
+    final cardTop = (size.height - 330) / 2;
+    final cardW = 240.0;
+    final cardH = 330.0;
+    final burnY = cardTop + cardH *
+        (1 - Curves.easeInCubic.transform(progress).clamp(0.0, 1.15).toDouble());
+
+    for (var i = 0; i < 95; i++) {
+      final seed = rnd.nextDouble();
+      final localT = (time * (1.2 + seed) + seed) % 1.0;
+      final x = centerX - cardW / 2 + rnd.nextDouble() * cardW +
+          math.sin(localT * 8 + i) * 26;
+      final y = burnY - localT * (100 + rnd.nextDouble() * 220) + rnd.nextDouble() * 22;
+      final alpha = (1 - localT) * progress.clamp(0.0, 1.0).toDouble();
+      final ember = Paint()
+        ..color = (i.isEven ? const Color(0xFFFFD166) : const Color(0xFFFF6E37))
+            .withValues(alpha: alpha)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+      canvas.drawCircle(Offset(x, y), 1.5 + rnd.nextDouble() * 3.4, ember);
+    }
+
     for (var i = 0; i < 34; i++) {
-      final x = size.width / 2 + math.sin(i * 2.3) * 150 * progress;
-      final y = size.height * .65 - progress * (65 + i * 7);
-      canvas.drawCircle(Offset(x, y), 1.5 + (i % 4), paint);
+      final seed = rnd.nextDouble();
+      final localT = (time * .42 + seed) % 1.0;
+      final x = centerX - cardW / 2 + rnd.nextDouble() * cardW +
+          math.sin(localT * 5 + i) * 34;
+      final y = burnY - 22 - localT * 160;
+      final smoke = Paint()
+        ..color = const Color(0xFF2B201E).withValues(alpha: (1 - localT) * .20 * progress)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+      canvas.drawCircle(Offset(x, y), 9 + localT * 24, smoke);
     }
   }
+
   @override
-  bool shouldRepaint(covariant _EmberPainter oldDelegate) => oldDelegate.progress != progress;
+  bool shouldRepaint(covariant _BurnParticlePainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.time != time ||
+        oldDelegate.active != active;
+  }
+}
+
+class _FlashMark extends StatelessWidget {
+  const _FlashMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(
+      Icons.local_fire_department_rounded,
+      color: Colors.orange.shade200.withValues(alpha: .95),
+      size: 54,
+    );
+  }
 }

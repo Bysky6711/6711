@@ -49,8 +49,8 @@ class _PhoneHomeScreenState extends State<PhoneHomeScreen>
     super.initState();
     parallaxController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 9),
-    )..repeat(reverse: true);
+      duration: const Duration(seconds: 90),
+    )..repeat();
   }
 
   @override

@@ -42,7 +42,7 @@ class _MafiaPhoneBackgroundState extends State<MafiaPhoneBackground>
     controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
-    )..repeat(reverse: true);
+    )..repeat();
   }
 
   @override

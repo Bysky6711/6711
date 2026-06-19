@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../chat/mafia_chat_screen.dart';
 import '../core/app_colors.dart';
 import '../core/responsive.dart';
@@ -75,55 +76,172 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
   }
 }
 
-class _Home extends StatelessWidget {
-  const _Home({required this.room, required this.onSettings, required this.onRules, required this.onNotes, required this.onAvatar, required this.onPower, required this.onMyCard, required this.onMessages, required this.onTasks, required this.onPremium});
+class _Home extends StatefulWidget {
+  const _Home({
+    required this.room,
+    required this.onSettings,
+    required this.onRules,
+    required this.onNotes,
+    required this.onAvatar,
+    required this.onPower,
+    required this.onMyCard,
+    required this.onMessages,
+    required this.onTasks,
+    required this.onPremium,
+  });
+
   final GameRoom room;
   final VoidCallback onSettings, onRules, onNotes, onAvatar, onPower, onMyCard, onMessages, onTasks, onPremium;
 
   @override
+  State<_Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<_Home> {
+  late List<_HomeIconData> icons;
+
+  @override
+  void initState() {
+    super.initState();
+    icons = _buildIcons();
+  }
+
+  List<_HomeIconData> _buildIcons() => [
+        _HomeIconData('ustawienia', Icons.settings_rounded, widget.onSettings),
+        _HomeIconData('chat', Icons.send_rounded, widget.onMessages, badge: 1),
+        _HomeIconData('moja karta', Icons.style_rounded, widget.onMyCard, assetPath: MafiaAssets.mafiaClassCard, color: MafiaPlayingCardColor.red),
+        _HomeIconData('karty mocy', Icons.auto_awesome_rounded, widget.onPower, assetPath: MafiaAssets.defaultCard, color: MafiaPlayingCardColor.blue),
+        _HomeIconData('avatar', Icons.person_rounded, widget.onAvatar),
+        _HomeIconData('zadania', Icons.extension_rounded, widget.onTasks),
+        _HomeIconData('notatki', Icons.edit_rounded, widget.onNotes),
+        _HomeIconData('zasady', Icons.description_outlined, widget.onRules),
+        _HomeIconData('premium', Icons.workspace_premium_rounded, widget.onPremium, isPremium: true),
+        _HomeIconData('menu', Icons.home_rounded, () => Navigator.popUntil(context, (route) => route.isFirst)),
+      ];
+
+  void _moveIcon(int from, int to) {
+    if (from == to) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      final item = icons.removeAt(from);
+      icons.insert(to, item);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final columns = width >= 520 ? 5 : 4;
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(Responsive.horizontalPadding(context), 22, Responsive.horizontalPadding(context), 22),
+      padding: EdgeInsets.fromLTRB(Responsive.horizontalPadding(context), 18, Responsive.horizontalPadding(context), 22),
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
-          child: Column(children: [
-            IOSGlass(
-              radius: 28,
-              opacity: .14,
-              borderOpacity: .12,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              child: Row(children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const MafiaClockText(fontSize: 62, align: TextAlign.left),
-                  const SizedBox(height: 8),
-                  Text(phaseLabel(room.phase), style: const TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w900)),
-                ])),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  transitionBuilder: (c, a) => ScaleTransition(scale: a, child: FadeTransition(opacity: a, child: c)),
-                  child: Icon(phaseIcon(room.phase), key: ValueKey(room.phase), color: AppColors.white, size: 72),
+          child: Column(
+            children: [
+              IOSGlass(
+                radius: 32,
+                opacity: .15,
+                borderOpacity: .13,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const MafiaClockText(fontSize: 62, align: TextAlign.left),
+                          const SizedBox(height: 8),
+                          Text(
+                            phaseLabel(widget.room.phase),
+                            style: const TextStyle(color: AppColors.white, fontSize: 15, fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Przytrzymaj ikonę i przesuń ją jak w telefonie',
+                            style: TextStyle(color: AppColors.white.withValues(alpha: .55), fontSize: 12, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (c, a) => ScaleTransition(scale: a, child: FadeTransition(opacity: a, child: c)),
+                      child: Icon(phaseIcon(widget.room.phase), key: ValueKey(widget.room.phase), color: AppColors.white, size: 70),
+                    ),
+                  ],
                 ),
-              ]),
-            ),
-            const SizedBox(height: 24),
-            Wrap(spacing: 16, runSpacing: 20, alignment: WrapAlignment.center, children: [
-              IOSAppIcon(label: 'ustawienia', icon: Icons.settings_rounded, onTap: onSettings),
-              IOSAppIcon(label: 'zasady', icon: Icons.description_outlined, onTap: onRules),
-              IOSCardIcon(label: 'karty mocy', assetPath: MafiaAssets.blueCard, color: MafiaPlayingCardColor.blue, onTap: onPower),
-              IOSAppIcon(label: 'notatki', icon: Icons.edit_rounded, onTap: onNotes),
-              IOSAppIcon(label: 'avatar', icon: Icons.person_rounded, onTap: onAvatar),
-              IOSCardIcon(label: 'moja karta', assetPath: MafiaAssets.redCard, color: MafiaPlayingCardColor.red, onTap: onMyCard),
-              IOSAppIcon(label: 'wiadomości', icon: Icons.send_rounded, badge: 1, onTap: onMessages),
-              IOSAppIcon(label: 'zadania', icon: Icons.extension_rounded, onTap: onTasks),
-              IOSAppIcon(label: 'premium', icon: Icons.workspace_premium_rounded, isPremium: true, onTap: onPremium),
-              IOSAppIcon(label: 'menu', icon: Icons.home_rounded, onTap: () => Navigator.popUntil(context, (route) => route.isFirst)),
-            ]),
-          ]),
+              ),
+              const SizedBox(height: 22),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: icons.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  mainAxisSpacing: 18,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: .78,
+                ),
+                itemBuilder: (context, index) {
+                  final item = icons[index];
+                  return DragTarget<int>(
+                    onWillAccept: (from) => from != index,
+                    onAccept: (from) => _moveIcon(from, index),
+                    builder: (context, candidate, rejected) {
+                      final highlighted = candidate.isNotEmpty;
+                      return AnimatedScale(
+                        scale: highlighted ? 1.08 : 1,
+                        duration: const Duration(milliseconds: 160),
+                        child: LongPressDraggable<int>(
+                          data: index,
+                          delay: const Duration(milliseconds: 180),
+                          feedback: Material(
+                            color: Colors.transparent,
+                            child: Transform.scale(scale: 1.08, child: _HomeIcon(item: item)),
+                          ),
+                          childWhenDragging: Opacity(opacity: .28, child: _HomeIcon(item: item)),
+                          onDragStarted: () => HapticFeedback.mediumImpact(),
+                          child: _HomeIcon(item: item),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+}
+
+class _HomeIconData {
+  const _HomeIconData(this.label, this.icon, this.onTap, {this.badge = 0, this.isPremium = false, this.assetPath, this.color = MafiaPlayingCardColor.red});
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final int badge;
+  final bool isPremium;
+  final String? assetPath;
+  final MafiaPlayingCardColor color;
+}
+
+class _HomeIcon extends StatelessWidget {
+  const _HomeIcon({required this.item});
+
+  final _HomeIconData item;
+
+  @override
+  Widget build(BuildContext context) {
+    if (item.assetPath != null) {
+      return IOSCardIcon(label: item.label, assetPath: item.assetPath!, color: item.color, onTap: item.onTap);
+    }
+    return IOSAppIcon(label: item.label, icon: item.icon, badge: item.badge, isPremium: item.isPremium, onTap: item.onTap);
   }
 }
 
@@ -135,43 +253,53 @@ class _IOSAppPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dismissible(
-      key: ValueKey(title),
-      direction: DismissDirection.down,
-      resizeDuration: null,
-      onDismissed: (_) => Navigator.of(context).maybePop(),
-      child: MafiaIOSScaffold(
-        darkOverlay: .10,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(Responsive.horizontalPadding(context), 12, Responsive.horizontalPadding(context), 14),
-          child: Column(children: [
-            Row(children: [
-              IOSBackButton(onTap: () => Navigator.pop(context)),
-              Icon(icon, color: AppColors.white, size: 25),
-              const SizedBox(width: 10),
-              Expanded(child: Text(title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.white, fontSize: 21, fontWeight: FontWeight.w900, letterSpacing: 1.1))),
-            ]),
-            const SizedBox(height: 10),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(30),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: .10),
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Colors.white.withValues(alpha: .12)),
+    var dragDx = 0.0;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragUpdate: (details) => dragDx += details.delta.dx,
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        if (dragDx > 72 || velocity > 560) Navigator.of(context).maybePop();
+        dragDx = 0;
+      },
+      child: Dismissible(
+        key: ValueKey(title),
+        direction: DismissDirection.down,
+        resizeDuration: null,
+        onDismissed: (_) => Navigator.of(context).maybePop(),
+        child: MafiaIOSScaffold(
+          darkOverlay: .10,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(Responsive.horizontalPadding(context), 12, Responsive.horizontalPadding(context), 14),
+            child: Column(children: [
+              Row(children: [
+                IOSBackButton(onTap: () => Navigator.pop(context)),
+                Icon(icon, color: AppColors.white, size: 25),
+                const SizedBox(width: 10),
+                Expanded(child: Text(title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.white, fontSize: 21, fontWeight: FontWeight.w900, letterSpacing: 1.1))),
+              ]),
+              const SizedBox(height: 10),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(30),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .10),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: Colors.white.withValues(alpha: .12)),
+                      ),
+                      child: child,
                     ),
-                    child: child,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 9),
-            Container(width: 118, height: 5, decoration: BoxDecoration(color: Colors.white.withValues(alpha: .55), borderRadius: BorderRadius.circular(99))),
-          ]),
+              const SizedBox(height: 9),
+              Container(width: 118, height: 5, decoration: BoxDecoration(color: Colors.white.withValues(alpha: .55), borderRadius: BorderRadius.circular(99))),
+            ]),
+          ),
         ),
       ),
     );
@@ -222,13 +350,16 @@ class _PlayersApp extends StatelessWidget {
 class _RolesApp extends StatelessWidget {
   const _RolesApp({required this.room});
   final GameRoom room;
-  void openCard(BuildContext c, MafiaRoleCardType r) => Navigator.push(c, MaterialPageRoute(builder: (_) => RoleRevealScreen(roleType: r)));
+  Future<void> openCard(BuildContext c, MafiaRoleCardType r) async {
+    final burned = await Navigator.push<bool>(c, MaterialPageRoute(builder: (_) => RoleRevealScreen(roleType: r)));
+    if (burned == true && c.mounted) Navigator.of(c).maybePop();
+  }
   @override
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.all(16),
         physics: const BouncingScrollPhysics(),
         children: [
-          IOSCardIcon(label: 'karta gospodarza', assetPath: MafiaAssets.blueCard, color: MafiaPlayingCardColor.blue, onTap: () => openCard(context, MafiaRoleCardType.host)),
+          IOSCardIcon(label: 'karta gospodarza', assetPath: MafiaAssets.mafiaClassCard, color: MafiaPlayingCardColor.red, onTap: () => openCard(context, MafiaRoleCardType.host)),
           const SizedBox(height: 16),
           ...room.players.map((p) {
             final r = p.role;

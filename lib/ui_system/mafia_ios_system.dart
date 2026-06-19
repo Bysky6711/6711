@@ -12,10 +12,11 @@ import '../widgets/shared_widgets.dart';
 class MafiaAssets {
   const MafiaAssets._();
 
-  // Poprawiona ścieżka: folder `card`, nie `cards`.
-  static const String redCard = 'assets/images/card/card_back_red.jpg';
-  static const String blueCard = 'assets/images/card/card_back_blue.jpg';
-  static const String powerCard = 'assets/images/card/card_back_blue.jpg';
+  static const String defaultCard = 'assets/images/card/1.jpg';
+  static const String mafiaClassCard = 'assets/images/card/card_class_mafia.jpg';
+  static const String redCard = defaultCard;
+  static const String blueCard = defaultCard;
+  static const String powerCard = defaultCard;
 }
 
 String phaseLabel(GamePhase phase) {
