@@ -57,7 +57,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
     try {
       final startedRoom = roomService.startGame(room);
       setState(() => room = startedRoom);
-      await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const RoleRevealScreen(roleType: MafiaRoleCardType.host)));
+      await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => RoleRevealScreen(roleType: MafiaRoleCardType.host, playerName: room.hostName, playerId: room.hostId, roomCode: room.roomCode)));
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => StartedGameScreen(room: startedRoom)));
     } catch (error) {
@@ -134,10 +134,7 @@ class _EmptyLine extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         margin: const EdgeInsets.only(bottom: 9),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: .10),
-          borderRadius: BorderRadius.circular(16),
-        ),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .10), borderRadius: BorderRadius.circular(16)),
         child: Row(children: [
           Icon(Icons.person_add_alt_rounded, color: AppColors.white.withValues(alpha: .52), size: 20),
           const SizedBox(width: 10),

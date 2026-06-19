@@ -77,7 +77,7 @@ class MafiaIOSScaffold extends StatelessWidget {
   }
 }
 
-class MafiaIOSBackground extends StatefulWidget {
+class MafiaIOSBackground extends StatelessWidget {
   const MafiaIOSBackground({
     super.key,
     required this.child,
@@ -92,63 +92,38 @@ class MafiaIOSBackground extends StatefulWidget {
   final bool lightning;
 
   @override
-  State<MafiaIOSBackground> createState() => _MafiaIOSBackgroundState();
-}
-
-class _MafiaIOSBackgroundState extends State<MafiaIOSBackground>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController controller;
-
-  @override
-  void initState() {
-    super.initState();
-    // Długi cykl + modulo w painterze = brak widocznego restartu.
-    controller = AnimationController(vsync: this, duration: const Duration(seconds: 120))..repeat();
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Stack(
+      fit: StackFit.expand,
       children: [
-        Positioned.fill(
-          child: RepaintBoundary(
-            child: AnimatedBuilder(
-              animation: controller,
-              builder: (context, _) {
-                return CustomPaint(
-                  painter: CinematicRainCityPainter(
-                    progress: controller.value,
-                    rain: widget.rain,
-                    lightning: widget.lightning,
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-        Positioned.fill(
-          child: DecoratedBox(
+        Image.asset(
+          'assets/images/backgrounds/new_background.jpg',
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
-                radius: 1.12,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: .22),
-                  Colors.black.withValues(alpha: .86),
-                ],
-                stops: const [.10, .64, 1],
+                center: Alignment.topCenter,
+                radius: 1.2,
+                colors: [Color(0xFF4A1010), Color(0xFF160404), Colors.black],
               ),
             ),
           ),
         ),
-        Positioned.fill(child: Container(color: Colors.black.withValues(alpha: widget.darkOverlay))),
-        Positioned.fill(child: RepaintBoundary(child: widget.child)),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.12 + darkOverlay),
+                Colors.black.withValues(alpha: 0.28 + darkOverlay),
+                Colors.black.withValues(alpha: 0.62 + darkOverlay),
+              ],
+            ),
+          ),
+        ),
+        if (rain) const Positioned.fill(child: IgnorePointer(child: _NewMafiaRainOverlay())),
+        child,
       ],
     );
   }
@@ -759,3 +734,65 @@ class _PinKey extends StatelessWidget {
     ),
   );
 }
+
+
+class _NewMafiaRainOverlay extends StatefulWidget {
+  const _NewMafiaRainOverlay();
+
+  @override
+  State<_NewMafiaRainOverlay> createState() => _NewMafiaRainOverlayState();
+}
+
+class _NewMafiaRainOverlayState extends State<_NewMafiaRainOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) => CustomPaint(
+        painter: _NewMafiaRainPainter(progress: controller.value),
+      ),
+    );
+  }
+}
+
+class _NewMafiaRainPainter extends CustomPainter {
+  const _NewMafiaRainPainter({required this.progress});
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: .055)
+      ..strokeWidth = 1;
+
+    for (var i = 0; i < 46; i++) {
+      final x = (i * 43 + progress * 150) % size.width;
+      final y = (i * 91 + progress * 320) % size.height;
+      canvas.drawLine(Offset(x, y), Offset(x - 10, y + 38), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _NewMafiaRainPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
+

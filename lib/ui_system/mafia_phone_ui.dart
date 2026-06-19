@@ -16,77 +16,49 @@ class MafiaPhoneAssets {
   static const String powerCard = 'assets/images/card/1.jpg';
 }
 
-class MafiaPhoneBackground extends StatefulWidget {
+class MafiaPhoneBackground extends StatelessWidget {
   const MafiaPhoneBackground({
     super.key,
     required this.child,
     this.darkOverlay = 0.08,
-    this.enableParallax = true,
   });
 
   final Widget child;
   final double darkOverlay;
-  final bool enableParallax;
-
-  @override
-  State<MafiaPhoneBackground> createState() => _MafiaPhoneBackgroundState();
-}
-
-class _MafiaPhoneBackgroundState extends State<MafiaPhoneBackground>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController controller;
-
-  @override
-  void initState() {
-    super.initState();
-    controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 8),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final motion = widget.enableParallax
-            ? math.sin(controller.value * math.pi * 2)
-            : 0.0;
-        return MafiaCityBackground(
-          darkOverlay: widget.darkOverlay,
-          blur: 0,
-          parallaxOffset: Offset(motion * 10, -motion * 5),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.04),
-                        AppColors.cityGlowRed.withValues(alpha: 0.10),
-                        Colors.black.withValues(alpha: 0.56),
-                        Colors.black,
-                      ],
-                      stops: const [0.0, 0.38, 0.77, 1.0],
-                    ),
-                  ),
-                ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          'assets/images/backgrounds/new_background.jpg',
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.topCenter,
+                radius: 1.2,
+                colors: [Color(0xFF4A1010), Color(0xFF160404), Colors.black],
               ),
-              Positioned.fill(child: widget.child),
-            ],
+            ),
           ),
-        );
-      },
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.10 + darkOverlay),
+                Colors.black.withValues(alpha: 0.35 + darkOverlay),
+                Colors.black.withValues(alpha: 0.72 + darkOverlay),
+              ],
+            ),
+          ),
+        ),
+        child,
+      ],
     );
   }
 }
