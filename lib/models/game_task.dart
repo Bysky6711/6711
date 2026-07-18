@@ -16,6 +16,7 @@ class GameTask {
     this.createdAt,
     this.resultLines = const [],
     this.winnerName,
+    this.imageUrl,
   });
 
   final GameTaskType type;
@@ -25,6 +26,10 @@ class GameTask {
   final List<String> options;
   final int? correctIndex;
   final int? createdAt;
+
+  /// Optional image (https URL) shown above an image quiz question; null for a
+  /// plain text question.
+  final String? imageUrl;
 
   /// Human-readable ranking, filled in when the round is finished.
   final List<String> resultLines;
@@ -43,6 +48,7 @@ class GameTask {
         'createdAt': createdAt,
         'resultLines': resultLines,
         'winnerName': winnerName,
+        'imageUrl': imageUrl,
       };
 
   factory GameTask.fromMap(Map<String, dynamic> map) => GameTask(
@@ -54,5 +60,6 @@ class GameTask {
         createdAt: (map['createdAt'] as num?)?.toInt(),
         resultLines: ((map['resultLines'] as List?) ?? const []).cast<String>(),
         winnerName: map['winnerName'] as String?,
+        imageUrl: map['imageUrl'] as String?,
       );
 }

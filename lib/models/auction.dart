@@ -1,5 +1,10 @@
 enum AuctionState { open, closed }
 
+/// Length of the auction countdown, in seconds. The clock starts on the first
+/// bid and resets to this value on every new bid; when it hits zero the auction
+/// auto-closes and the last (highest) bidder wins.
+const int kAuctionCountdownSeconds = 5;
+
 /// A single card auction: rooms/{code}/auction/current. Players bid currency;
 /// the highest bid wins the card and is charged on close.
 class Auction {
@@ -10,6 +15,7 @@ class Auction {
     this.winnerId,
     this.winnerName,
     this.winningBid = 0,
+    this.endsAt,
   });
 
   final String cardId;
@@ -19,7 +25,21 @@ class Auction {
   final String? winnerName;
   final int winningBid;
 
+  /// Millis-since-epoch deadline for the resetting countdown. Null before the
+  /// first bid (clock only starts once someone bids); each new bid pushes it to
+  /// now + [kAuctionCountdownSeconds]. When it elapses the host auto-closes and
+  /// the last (= highest) bidder wins.
+  final int? endsAt;
+
   bool get isOpen => state == AuctionState.open;
+
+  /// Whole seconds left on the countdown for [now], or null when no clock is
+  /// running yet (no bids). Never negative.
+  int? secondsLeft(DateTime now) {
+    if (endsAt == null) return null;
+    final ms = endsAt! - now.millisecondsSinceEpoch;
+    return ms <= 0 ? 0 : (ms / 1000).ceil();
+  }
 
   int get highBid {
     var m = 0;
@@ -48,6 +68,7 @@ class Auction {
         'winnerId': winnerId,
         'winnerName': winnerName,
         'winningBid': winningBid,
+        'endsAt': endsAt,
       };
 
   factory Auction.fromMap(Map<String, dynamic> map) => Auction(
@@ -60,5 +81,6 @@ class Auction {
         winnerId: map['winnerId'] as String?,
         winnerName: map['winnerName'] as String?,
         winningBid: (map['winningBid'] as num?)?.toInt() ?? 0,
+        endsAt: (map['endsAt'] as num?)?.toInt(),
       );
 }

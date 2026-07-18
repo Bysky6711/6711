@@ -16,9 +16,12 @@ dependencies:
 
   # Online multiplayer (realtime) — see SETUP_ONLINE.md.
   # If version resolution fails on your Flutter/Dart, run:
-  #   flutter pub add firebase_core cloud_firestore
+  #   flutter pub add firebase_core cloud_firestore firebase_auth
   firebase_core: ^4.12.1
   cloud_firestore: ^6.7.1
+  # Anonymous auth so the Firestore rules can require an authenticated user.
+  # Enable "Anonymous" sign-in in Firebase console → Authentication.
+  firebase_auth: ^6.1.0
 
   # Stickers: pick a photo from the gallery + compress to a small base64 JPG
   # stored inline in the Firestore message (no Firebase Storage / Blaze needed).

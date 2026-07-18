@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/app_colors.dart';
@@ -5,7 +6,9 @@ import '../core/edition_state.dart';
 import '../core/responsive.dart';
 import '../core/session_store.dart';
 import '../data/card.dart';
+import '../data/medieval_classes.dart';
 import '../data/roles.dart';
+import '../models/game_edition.dart';
 import '../models/game_player.dart';
 import '../models/game_room.dart';
 import '../services/online_room_service.dart';
@@ -60,6 +63,11 @@ class _LobbyScreenState extends State<LobbyScreen> {
       try {
         await service.removePlayer(code: widget.roomCode, playerId: widget.myPlayerId);
       } catch (_) {}
+    } else {
+      // Host closing the lobby — delete the room so it doesn't linger forever.
+      try {
+        await service.deleteRoom(widget.roomCode);
+      } catch (_) {}
     }
     if (mounted) Navigator.pop(context);
   }
@@ -87,7 +95,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
   Future<void> startGame(GameRoom room) async {
     if (_starting) return;
     // Tryb testowy: host o nicku "Byski" może wystartować bez kompletu graczy.
-    final force = room.hostName.trim().toLowerCase() == 'byski';
+    // Tylko w buildzie debug — w wersji publicznej (release/web) backdoor nie działa.
+    final force = kDebugMode && room.hostName.trim().toLowerCase() == 'byski';
     final error = service.startGameError(room);
     if (error != null && !force) {
       showMessage(error);
@@ -137,6 +146,13 @@ class _LobbyScreenState extends State<LobbyScreen> {
 
   int _citizens(GameRoom room) =>
       GameRoles.citizensCount(players: room.maxPlayers, roleCounts: room.roleCounts);
+
+  String _factionLabel(MedievalFaction f) => switch (f) {
+        MedievalFaction.antagonisci => 'Ród Węża',
+        MedievalFaction.korona => 'Korona',
+        MedievalFaction.neutralny => 'Neutralny',
+        MedievalFaction.niezdeklarowany => 'Podrzutek',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -235,13 +251,31 @@ class _LobbyScreenState extends State<LobbyScreen> {
                   ]),
                 ),
                 const SizedBox(height: 14),
-                LockGlassPanel(
-                  opacity: .14,
-                  child: Column(children: [
-                    ...GameRoles.configurable.map((role) => _SummaryLine(label: role.name, value: GameRoles.countOf(room.roleCounts, role.type).toString())),
-                    _SummaryLine(label: GameRoles.nameOf(MafiaRoleCardType.citizen), value: _citizens(room).toString()),
-                  ]),
-                ),
+                if (room.edition.isMedieval)
+                  LockGlassPanel(
+                    opacity: .14,
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Klasy dworu (losowane automatycznie)', style: TextStyle(color: AppColors.white.withValues(alpha: .74), fontSize: 13, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 10),
+                      ...MedievalClasses.all.map((c) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(children: [
+                              Icon(c.icon, color: const Color(0xFFC9A227), size: 18),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text(c.name, style: const TextStyle(color: AppColors.white, fontSize: 14, fontWeight: FontWeight.w800))),
+                              Text(_factionLabel(c.faction), style: TextStyle(color: AppColors.white.withValues(alpha: .55), fontSize: 11, fontWeight: FontWeight.w700)),
+                            ]),
+                          )),
+                    ]),
+                  )
+                else
+                  LockGlassPanel(
+                    opacity: .14,
+                    child: Column(children: [
+                      ...GameRoles.configurable.map((role) => _SummaryLine(label: role.name, value: GameRoles.countOf(room.roleCounts, role.type).toString())),
+                      _SummaryLine(label: GameRoles.nameOf(MafiaRoleCardType.citizen), value: _citizens(room).toString()),
+                    ]),
+                  ),
                 const SizedBox(height: 18),
                 if (canStart)
                   LockButton(

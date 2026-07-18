@@ -1,25 +1,28 @@
 rules_version = '2';
 
-// ⚠️ DEVELOPMENT rules for the Mafia party game.
+// Rules for the Mafia party game.
 //
-// The app currently has NO authentication — players are identified only by a
-// generated id held on their device — so these rules allow open read/write to
-// room documents. That is fine for playing with friends, but anyone who knows
-// (or guesses) a 5-char room code could read/write it.
+// The app signs every device in with Firebase Anonymous Auth (see main.dart),
+// so we require an authenticated user for all room access. This blocks random,
+// unauthenticated scanners/writers hitting the public deployment — anyone must
+// at least hold a valid anonymous token from THIS app.
 //
-// To harden for real production:
-//   1. Add Firebase Auth (anonymous sign-in is enough) in the app.
-//   2. Require `request.auth != null` below.
-//   3. Optionally validate field shapes and lock the `players`/`status`
-//      transitions to the host uid.
+// NOTE: players are still identified by an in-app generated id (not the auth
+// uid), so these rules intentionally do NOT lock individual fields to a
+// specific host/player. To harden further you would store the host's auth uid
+// on the room and gate status/phase transitions to it. For playing with friends
+// the auth requirement below is the important step up from fully-open access.
+//
+// ⚠️ Requires "Anonymous" sign-in enabled: Firebase console → Build →
+//    Authentication → Sign-in method → Anonymous → Enable.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /rooms/{roomCode} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
 
-      // messages/ and actions/ subcollections
+      // messages / actions / hands / votes / tasks / auction / state subcollections
       match /{document=**} {
-        allow read, write: if true;
+        allow read, write: if request.auth != null;
       }
     }
   }

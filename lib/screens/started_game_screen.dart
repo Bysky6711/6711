@@ -103,6 +103,13 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
   bool _firstRoomLoad = true;
   final Set<String> _deadSeen = {};
 
+  // Auction auto-close driven from the always-mounted game screen (host), so the
+  // countdown resolves even when the host isn't looking at the auction screen.
+  StreamSubscription<Auction?>? _auctionSub;
+  Auction? _liveAuction;
+  Timer? _auctionTicker;
+  bool _auctionClosing = false;
+
   String noteText = '';
 
   @override
@@ -127,6 +134,10 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
       if (mounted) setState(() => playerPowerCards = value);
     });
     _messagesSub = service.watchMessages(widget.roomCode, myName: myName).listen(_handleMessages);
+    if (widget.isHost) {
+      _auctionSub = service.watchAuction(widget.roomCode).listen((a) => _liveAuction = a);
+      _auctionTicker = Timer.periodic(const Duration(milliseconds: 700), (_) => _maybeAutoCloseAuction());
+    }
     if (!widget.isHost) {
       _taskSub = service.watchTask(widget.roomCode).listen((task) {
         if (!mounted) return;
@@ -153,8 +164,27 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
     _handSub?.cancel();
     _taskSub?.cancel();
     _messagesSub?.cancel();
+    _auctionSub?.cancel();
+    _auctionTicker?.cancel();
     _pageController.dispose();
     super.dispose();
+  }
+
+  /// Host-side auto-close for the auction countdown, running regardless of which
+  /// in-game screen is open. The service call is transactional (and bails if a
+  /// last-moment bid reset the clock), so this can't double-charge.
+  void _maybeAutoCloseAuction() {
+    if (!mounted || !widget.isHost || _auctionClosing) return;
+    final a = _liveAuction;
+    final r = room;
+    final ends = a?.endsAt;
+    if (a == null || r == null || !a.isOpen || ends == null) return;
+    if (DateTime.now().millisecondsSinceEpoch < ends) return;
+    _auctionClosing = true;
+    final nameById = {r.hostId: r.hostName, for (final p in r.players) p.id: p.name};
+    service.closeAuction(code: widget.roomCode, nameById: nameById, auto: true).whenComplete(() {
+      if (mounted) _auctionClosing = false;
+    });
   }
 
   MafiaRoleCardType get myRole {
@@ -179,6 +209,29 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
     return 'Gracz';
   }
 
+  /// This player's medieval court class (null when host, standard edition, or
+  /// not yet dealt).
+  MedievalClassType? get myMedievalClass {
+    final current = room;
+    if (current == null || widget.isHost) return null;
+    for (final player in current.players) {
+      if (player.id == widget.myPlayerId) return player.medievalClass;
+    }
+    return null;
+  }
+
+  /// Human label of the player's role/class, edition-aware: the court-class name
+  /// in the medieval edition (or „Król" for the host), the base role otherwise.
+  String get myRoleLabel {
+    final current = room;
+    if (current != null && current.edition.isMedieval) {
+      if (widget.isHost) return 'Król';
+      final mc = myMedievalClass;
+      return mc != null ? MedievalClasses.nameOf(mc) : 'Dworzanin';
+    }
+    return GameRoles.nameOf(myRole);
+  }
+
   bool _isAlive(GameRoom r) {
     if (widget.isHost) return true;
     for (final p in r.players) {
@@ -194,7 +247,11 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Faza zmieniona — zagrane karty rozliczone.')));
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Nie udało się zmienić fazy: ${e.toString().replaceFirst('Exception: ', '')}')));
+      }
+    }
   }
 
   /// Host ends the game — everyone returns to the lobby (status -> waiting makes
@@ -217,7 +274,11 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
     if (ok != true) return;
     try {
       await service.resetToLobby(widget.roomCode);
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Nie udało się zakończyć gry: ${e.toString().replaceFirst('Exception: ', '')}')));
+      }
+    }
   }
 
   Future<void> _registerPowerCard(PlayedPowerCardAction action) async {
@@ -240,6 +301,13 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
       if (me.isNotEmpty && (me.first.statuses.contains('kompromitacja2') || me.first.statuses.contains('kompromitacja3'))) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kompromitacja — nie możesz teraz grać kart.')));
+        }
+        return;
+      }
+      // Bankructwo (na tę fazę): nie możesz płacić/przekazywać Wpływów.
+      if (me.isNotEmpty && me.first.statuses.contains('bankrupt') && action.card.id == 'laska_krola') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bankructwo — nie możesz teraz przekazywać Wpływów.')));
         }
         return;
       }
@@ -300,8 +368,9 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
         await service.copyVote(code: widget.roomCode, forcedName: action.targetPlayerName!, sourceId: widget.myPlayerId);
         immediate = true;
       } else if (action.card.id == 'bankructwo' && (action.targetPlayerName ?? '').isNotEmpty) {
+        // „na tę fazę": tymczasowa blokada Wpływów (status transient), nie trwałe zerowanie.
         final tl = room?.players.where((p) => p.name == action.targetPlayerName).toList() ?? const [];
-        if (tl.isNotEmpty) await service.zeroInfluence(code: widget.roomCode, playerId: tl.first.id);
+        if (tl.isNotEmpty) await service.markStatus(code: widget.roomCode, playerId: tl.first.id, status: 'bankrupt');
         immediate = true;
       } else if (action.card.id == 'podrobiona_pieczec') {
         await service.markStatus(code: widget.roomCode, playerId: widget.myPlayerId, status: 'doublevote');
@@ -321,7 +390,11 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
               : 'Karta \u201e${action.card.name}\u201d zagrana \u2014 zadzia\u0142a w nast\u0119pnej fazie.')),
         );
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Nie uda\u0142o si\u0119 zagra\u0107 karty: ${e.toString().replaceFirst('Exception: ', '')}')));
+      }
+    }
   }
 
   /// Fires an on-screen overlay when a queued card resolves against ME.
@@ -367,7 +440,11 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
   Future<void> _dealCard(String playerId, String cardId) async {
     try {
       await service.assignCard(code: widget.roomCode, playerId: playerId, cardId: cardId);
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Nie udało się rozdać karty: ${e.toString().replaceFirst('Exception: ', '')}')));
+      }
+    }
   }
 
   Future<void> _leaveRoom() async {
@@ -377,6 +454,11 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
     if (!widget.isHost) {
       try {
         await service.removePlayer(code: widget.roomCode, playerId: widget.myPlayerId);
+      } catch (_) {}
+    } else {
+      // Host leaving for good — tear the room down so it doesn't linger forever.
+      try {
+        await service.deleteRoom(widget.roomCode);
       } catch (_) {}
     }
     if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
@@ -613,7 +695,9 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
             onNotes: () => openApp('Notatki', Icons.edit_rounded, _SamsungNotesApp(initialText: noteText, onChanged: (value) => noteText = value)),
             onAvatar: () => openApp('Avatar', Icons.person_rounded, _AvatarMenuApp(room: current, myName: myName, myRole: myRole, myPlayerId: widget.myPlayerId, onOpenNotes: () => openApp('Notatki', Icons.edit_rounded, _SamsungNotesApp(initialText: noteText, onChanged: (value) => noteText = value)), onOpenSettings: () => openApp('Ustawienia', Icons.settings_rounded, _settingsApp(current)))),
             onPower: () => openApp('Karty mocy', Icons.auto_awesome_rounded, _PowerCardsApp(room: current, myName: myName, cards: playerPowerCards, onPlay: _registerPowerCard)),
-            onMyCard: () => openApp('ID', Icons.badge_rounded, _IdCardApp(role: myRole, playerName: myName, roomCode: current.roomCode, playerId: widget.myPlayerId)),
+            onMyCard: () => current.edition.isMedieval
+                ? Navigator.push(context, MaterialPageRoute(builder: (_) => RoleRevealScreen(roleType: myRole, playerName: myName, playerId: widget.myPlayerId, roomCode: current.roomCode, instantIdOnly: true, edition: current.edition, medievalClass: myMedievalClass)))
+                : openApp('ID', Icons.badge_rounded, _IdCardApp(role: myRole, playerName: myName, roomCode: current.roomCode, playerId: widget.myPlayerId)),
             onMessages: () => _openMessages(current),
             onTasks: () => openApp('Zadania', Icons.extension_rounded, _TasksApp(service: service, roomCode: current.roomCode, isHost: widget.isHost, myPlayerId: widget.myPlayerId, room: current)),
             onGroupGames: () => openApp('Gry grupowe', Icons.groups_2_rounded, GroupGamesApp(service: service, roomCode: current.roomCode, isHost: widget.isHost, room: current, myPlayerId: widget.myPlayerId)),
@@ -651,7 +735,7 @@ class _StartedGameScreenState extends State<StartedGameScreen> {
                 room: current,
                 isHost: widget.isHost,
                 myPlayerId: widget.myPlayerId,
-                myRoleLabel: (current.edition.isMedieval && myRole == MafiaRoleCardType.host) ? 'Król' : GameRoles.nameOf(myRole),
+                myRoleLabel: myRoleLabel,
                 pendingCards: playedPowerCards.where((a) => !a.resolved).length,
                 onChangePhase: changePhase,
                 onEndGame: _endGameToLobby,
@@ -938,6 +1022,12 @@ class _AvatarMenuApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomSafe = MediaQuery.viewPaddingOf(context).bottom;
+    // Edition-aware role label: court class in medieval, base role otherwise.
+    final mine = room.players.where((p) => p.id == myPlayerId).toList();
+    final myMed = mine.isEmpty ? null : mine.first.medievalClass;
+    final roleLabel = room.edition.isMedieval
+        ? (myRole == MafiaRoleCardType.host ? 'Król' : (myMed != null ? MedievalClasses.nameOf(myMed) : 'Dworzanin'))
+        : GameRoles.nameOf(myRole);
     return ListView(
       padding: EdgeInsets.fromLTRB(16, 18, 16, 24 + bottomSafe),
       physics: const BouncingScrollPhysics(),
@@ -955,7 +1045,7 @@ class _AvatarMenuApp extends StatelessWidget {
             const SizedBox(height: 12),
             Text(myName, style: const TextStyle(color: AppColors.white, fontSize: 22, fontWeight: FontWeight.w900)),
             const SizedBox(height: 4),
-            Text('${room.edition.isMedieval && myRole == MafiaRoleCardType.host ? 'Król' : GameRoles.nameOf(myRole)} • Pokój ${room.roomCode}', style: TextStyle(color: AppColors.white.withValues(alpha: .68), fontWeight: FontWeight.w800)),
+            Text('$roleLabel • Pokój ${room.roomCode}', style: TextStyle(color: AppColors.white.withValues(alpha: .68), fontWeight: FontWeight.w800)),
           ]),
         ),
         const SizedBox(height: 16),
@@ -1276,28 +1366,36 @@ class _CardCatalogApp extends StatelessWidget {
         const SizedBox(height: 6),
         Text('Wszystkie ${cards.length} kart w grze i co robią.', style: TextStyle(color: AppColors.white.withValues(alpha: .6), fontSize: 13, fontWeight: FontWeight.w700)),
         const SizedBox(height: 14),
-        ...cards.map((c) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: const Color(0xFF33221F), borderRadius: BorderRadius.circular(18), border: Border.all(color: c.color.withValues(alpha: .35))),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Container(width: 46, height: 46, alignment: Alignment.center, decoration: BoxDecoration(shape: BoxShape.circle, color: c.color.withValues(alpha: .2), border: Border.all(color: c.color.withValues(alpha: .7))), child: Icon(c.icon, color: c.color, size: 24)),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(c.name, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 4),
-                  Text(c.effectDescription, style: TextStyle(color: Colors.white.withValues(alpha: .7), fontSize: 13, height: 1.3)),
-                  const SizedBox(height: 8),
-                  Wrap(spacing: 6, runSpacing: 6, children: [
-                    _catChip('Faza: ${c.timingLabel}', c.color),
-                    _catChip('Cel: ${c.targetLabel}', c.color),
-                  ]),
-                ])),
-              ]),
-            )),
+        ...cards.map((c) {
+          final fg = _readable(c.color);
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: const Color(0xFF33221F), borderRadius: BorderRadius.circular(18), border: Border.all(color: fg.withValues(alpha: .35))),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(width: 46, height: 46, alignment: Alignment.center, decoration: BoxDecoration(shape: BoxShape.circle, color: fg.withValues(alpha: .2), border: Border.all(color: fg.withValues(alpha: .7))), child: Icon(c.icon, color: fg, size: 24)),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(c.name, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 4),
+                Text(c.effectDescription, style: TextStyle(color: Colors.white.withValues(alpha: .7), fontSize: 13, height: 1.3)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 6, runSpacing: 6, children: [
+                  _catChip('Faza: ${c.timingLabel}', fg),
+                  _catChip('Cel: ${c.targetLabel}', fg),
+                ]),
+              ])),
+            ]),
+          );
+        }),
       ],
     );
   }
+
+  /// Lightens a very dark card colour so the icon and chips stay legible on the
+  /// dark catalog card — the medieval palette is mostly near-black burgundy/plum.
+  Color _readable(Color c) =>
+      c.computeLuminance() < 0.3 ? Color.lerp(c, Colors.white, 0.55)! : c;
 
   Widget _catChip(String text, Color color) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1807,6 +1905,10 @@ class _MedievalAbilityAppState extends State<_MedievalAbilityApp> {
         ]);
         break;
       case MedievalAbilityKind.treasury:
+        if (me.statuses.contains('tax_round:${room.roundNumber}')) {
+          widgets.add(const _EmptyHint(text: 'Skarbiec wykorzystany w tej turze (raz na turę). Wróć w następnej.'));
+          break;
+        }
         widgets.addAll([
           _PlayerDropdown(label: 'Osoba', value: _target, players: candidates, onChanged: (v) => setState(() => _target = v)),
           const SizedBox(height: 12),
@@ -1822,7 +1924,7 @@ class _MedievalAbilityAppState extends State<_MedievalAbilityApp> {
         if (f != null) {
           widgets.add(_noteBox('Zadeklarowano: ${f == MedievalFaction.korona ? 'Korona' : 'Antagoniści'}. Decyzja jest nieodwołalna.'));
         } else if (room.roundNumber > 3) {
-          widgets.add(const _EmptyHint(text: 'Minęły 3 tury — o Twojej stronie decyduje losowanie gospodarza.'));
+          widgets.add(const _EmptyHint(text: 'Minęły 3 tury — strona zostaje wylosowana automatycznie (50/50).'));
         } else {
           widgets.addAll([
             Text('Masz czas do końca 3. tury (obecnie tura ${room.roundNumber}). Wybór jest NIEODWOŁALNY.', style: TextStyle(color: AppColors.white.withValues(alpha: .72), fontWeight: FontWeight.w700, height: 1.3)),
@@ -1943,10 +2045,11 @@ class _MedievalAbilityAppState extends State<_MedievalAbilityApp> {
   Future<void> _tax(int amount) async {
     if (_target == null) return;
     final room = await widget.service.getRoom(widget.roomCode);
-    final t = room?.players.where((p) => p.name == _target).toList() ?? const [];
+    if (room == null) return;
+    final t = room.players.where((p) => p.name == _target).toList();
     if (t.isEmpty) return;
-    await widget.service.awardInfluence(code: widget.roomCode, playerId: t.first.id, amount: amount);
-    await widget.service.awardInfluence(code: widget.roomCode, playerId: widget.myPlayerId, amount: -amount);
+    // Atomic transfer + „raz na turę" stamp (guards a fast double-tap).
+    await widget.service.treasuryTransfer(code: widget.roomCode, skarbnikId: widget.myPlayerId, targetId: t.first.id, amount: amount, roundNumber: room.roundNumber);
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${amount < 0 ? 'Opodatkowano' : 'Dotowano'}: $_target')));
   }
 
@@ -2613,16 +2716,17 @@ class _TasksAppState extends State<_TasksApp> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const _NewTaskSheet(),
+      builder: (_) => _NewTaskSheet(edition: widget.room.edition),
     );
     if (prizeCardId == null) return;
-    final q = drawQuizQuestion(); // fresh, non-repeating question each round
+    final q = drawQuizQuestion(); // fully random draw (text or image question)
     final task = GameTask(
       state: GameTaskState.waiting,
       prizeCardId: prizeCardId,
       question: q.question,
       options: q.options,
       correctIndex: q.correctIndex,
+      imageUrl: q.imageUrl,
       createdAt: DateTime.now().millisecondsSinceEpoch,
     );
     await widget.service.createTask(code: widget.roomCode, task: task);
@@ -2699,7 +2803,7 @@ class _TasksAppState extends State<_TasksApp> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(task.typeLabel, style: const TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),
-          Text('Nagroda: ${PowerCards.byId(task.prizeCardId).name}', style: const TextStyle(color: kOneDim, fontWeight: FontWeight.w700)),
+          Text('Nagroda: ${cardById(task.prizeCardId).name}', style: const TextStyle(color: kOneDim, fontWeight: FontWeight.w700)),
           if (task.question != null) ...[
             const SizedBox(height: 6),
             Text('Pytanie: ${task.question}', style: const TextStyle(color: kOneDim, fontWeight: FontWeight.w700)),
@@ -2719,12 +2823,16 @@ class _TasksAppState extends State<_TasksApp> {
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Zadanie w toku — ${task.typeLabel}', style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+            if (task.imageUrl != null && task.imageUrl!.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _QuizImage(url: task.imageUrl!),
+            ],
             if (task.question != null) ...[
               const SizedBox(height: 8),
               Text(task.question!, style: const TextStyle(color: kOneDim, fontWeight: FontWeight.w700)),
             ],
             const SizedBox(height: 6),
-            Text('Nagroda: ${PowerCards.byId(task.prizeCardId).name}', style: const TextStyle(color: kOneDim, fontWeight: FontWeight.w700)),
+            Text('Nagroda: ${cardById(task.prizeCardId).name}', style: const TextStyle(color: kOneDim, fontWeight: FontWeight.w700)),
           ]),
         ),
         const SizedBox(height: 16),
@@ -2737,7 +2845,7 @@ class _TasksAppState extends State<_TasksApp> {
       ];
     }
     return [
-      _QuizPlayerView(key: ValueKey('quiz-${task.question}'), question: task.question ?? '', options: task.options, correctIndex: task.correctIndex ?? -1, onAnswer: _submitQuiz),
+      _QuizPlayerView(key: ValueKey('quiz-${task.question}-${task.imageUrl}'), question: task.question ?? '', imageUrl: task.imageUrl, options: task.options, correctIndex: task.correctIndex ?? -1, onAnswer: _submitQuiz),
     ];
   }
 
@@ -2768,8 +2876,9 @@ class _TasksAppState extends State<_TasksApp> {
 }
 
 class _QuizPlayerView extends StatefulWidget {
-  const _QuizPlayerView({super.key, required this.question, required this.options, required this.correctIndex, required this.onAnswer});
+  const _QuizPlayerView({super.key, required this.question, this.imageUrl, required this.options, required this.correctIndex, required this.onAnswer});
   final String question;
+  final String? imageUrl;
   final List<String> options;
   final int correctIndex;
   final Future<void> Function(int) onAnswer;
@@ -2785,6 +2894,10 @@ class _QuizPlayerViewState extends State<_QuizPlayerView> {
   Widget build(BuildContext context) {
     final answered = _picked != null;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) ...[
+        _QuizImage(url: widget.imageUrl!),
+        const SizedBox(height: 12),
+      ],
       IOSGlass(padding: const EdgeInsets.all(16), child: Text(widget.question, style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w800))),
       const SizedBox(height: 12),
       for (var i = 0; i < widget.options.length; i++) ...[
@@ -2807,6 +2920,43 @@ class _QuizPlayerViewState extends State<_QuizPlayerView> {
           style: TextStyle(color: _picked == widget.correctIndex ? const Color(0xFF34D399) : const Color(0xFFEF4444), fontWeight: FontWeight.w800),
         ),
     ]);
+  }
+}
+
+/// Renders an image-quiz picture from a URL, with a spinner while it loads and a
+/// graceful placeholder if the link is broken (so a bad URL never crashes).
+class _QuizImage extends StatelessWidget {
+  const _QuizImage({required this.url});
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+      ),
+      child: Image.network(
+        url,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, progress) => progress == null
+            ? child
+            : const Center(child: CircularProgressIndicator(color: Colors.white)),
+        errorBuilder: (context, error, stack) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.broken_image_rounded, color: Colors.white.withValues(alpha: .5), size: 36),
+            const SizedBox(height: 6),
+            Text('Nie udało się wczytać obrazka', style: TextStyle(color: Colors.white.withValues(alpha: .5), fontSize: 12, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -2848,7 +2998,8 @@ class _QuizOption extends StatelessWidget {
 /// Prize picker for a new Quiz round. Returns the chosen prize card id (or a
 /// random one). The question itself is drawn automatically (non-repeating).
 class _NewTaskSheet extends StatefulWidget {
-  const _NewTaskSheet();
+  const _NewTaskSheet({required this.edition});
+  final GameEdition edition;
 
   @override
   State<_NewTaskSheet> createState() => _NewTaskSheetState();
@@ -2885,7 +3036,7 @@ class _NewTaskSheetState extends State<_NewTaskSheet> {
             isExpanded: true,
             items: [
               const DropdownMenuItem(value: '__random__', child: Text('🎲 Losowa karta')),
-              ...PowerCards.all.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))),
+              ...cardsFor(widget.edition).map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))),
             ],
             onChanged: (value) => setState(() => prizeCardId = value),
             dropdownColor: const Color(0xFF220808),
@@ -2900,7 +3051,7 @@ class _NewTaskSheetState extends State<_NewTaskSheet> {
                   ? null
                   : () => Navigator.pop(
                         context,
-                        prizeCardId == '__random__' ? (PowerCards.all.toList()..shuffle()).first.id : prizeCardId!,
+                        prizeCardId == '__random__' ? (cardsFor(widget.edition).toList()..shuffle()).first.id : prizeCardId!,
                       ),
               icon: const Icon(Icons.check_rounded),
               label: const Text('Utwórz'),
@@ -2935,12 +3086,40 @@ class _AuctionAppState extends State<_AuctionApp> {
       };
   int get _balance => _room.wallets[widget.myPlayerId] ?? 0;
 
+  Auction? _liveAuction;
+  Timer? _ticker;
+  // Cache the streams so the countdown ticker's frequent setState() calls don't
+  // rebuild new StreamBuilders (which would re-subscribe to Firestore each tick).
+  late final Stream<GameRoom?> _roomStream = widget.service.watchRoom(widget.roomCode);
+  late final Stream<Auction?> _auctionStream = widget.service.watchAuction(widget.roomCode);
+
+  @override
+  void initState() {
+    super.initState();
+    // Ticker only refreshes the visible countdown here — the actual auto-close is
+    // driven by the game screen (so it works even off this screen).
+    _ticker = Timer.periodic(const Duration(milliseconds: 400), (_) => _onTick());
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  void _onTick() {
+    if (!mounted) return;
+    final a = _liveAuction;
+    if (a == null || !a.isOpen || a.endsAt == null) return; // no live countdown
+    setState(() {}); // refresh the live countdown readout
+  }
+
   Future<void> _start() async {
     final cardId = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const _StartAuctionSheet(),
+      builder: (_) => _StartAuctionSheet(edition: _room.edition),
     );
     if (cardId == null) return;
     await widget.service.startAuction(code: widget.roomCode, cardId: cardId);
@@ -2956,20 +3135,21 @@ class _AuctionAppState extends State<_AuctionApp> {
     }
   }
 
-  Future<void> _close() => widget.service.closeAuction(code: widget.roomCode, nameById: _nameById);
+  Future<void> _close({bool auto = false}) => widget.service.closeAuction(code: widget.roomCode, nameById: _nameById, auto: auto);
   Future<void> _clear() => widget.service.clearAuction(widget.roomCode);
 
   @override
   Widget build(BuildContext context) {
     final bottomSafe = MediaQuery.viewPaddingOf(context).bottom;
     return StreamBuilder<GameRoom?>(
-      stream: widget.service.watchRoom(widget.roomCode),
+      stream: _roomStream,
       builder: (context, roomSnap) {
         _liveRoom = roomSnap.data ?? _liveRoom;
         return StreamBuilder<Auction?>(
-          stream: widget.service.watchAuction(widget.roomCode),
+          stream: _auctionStream,
           builder: (context, snapshot) {
             final auction = snapshot.data;
+            _liveAuction = auction;
             return ListView(
           padding: EdgeInsets.fromLTRB(16, 16, 16, 24 + bottomSafe),
           physics: const BouncingScrollPhysics(),
@@ -3015,13 +3195,27 @@ class _AuctionAppState extends State<_AuctionApp> {
   List<Widget> _buildOpen(Auction auction) {
     final high = auction.highBid;
     final leader = auction.highBidderId != null ? (_nameById[auction.highBidderId] ?? 'Gracz') : null;
+    final secs = auction.secondsLeft(DateTime.now());
     return [
       IOSGlass(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Karta: ${PowerCards.byId(auction.cardId).name}', style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+          Text('Karta: ${cardById(auction.cardId).name}', style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
           Text(high > 0 ? 'Najwyższa oferta: $high\$ — $leader' : 'Brak ofert. Bądź pierwszy!', style: const TextStyle(color: kOneDim, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          Row(children: [
+            Icon(secs == null ? Icons.hourglass_empty_rounded : Icons.timer_rounded, color: const Color(0xFFFFD166), size: 16),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                secs == null
+                    ? 'Zegar ruszy po pierwszej ofercie.'
+                    : 'Koniec za: ${secs}s — każde podbicie resetuje licznik.',
+                style: const TextStyle(color: Color(0xFFFFD166), fontWeight: FontWeight.w900, fontSize: 13),
+              ),
+            ),
+          ]),
         ]),
       ),
       if (!widget.isHost) ...[
@@ -3035,7 +3229,7 @@ class _AuctionAppState extends State<_AuctionApp> {
       ],
       if (widget.isHost) ...[
         const SizedBox(height: 18),
-        LockButton(text: 'Zakończ licytację', icon: Icons.flag_rounded, light: true, onTap: _close),
+        LockButton(text: 'Zakończ teraz', icon: Icons.flag_rounded, light: true, onTap: () => _close()),
       ],
     ];
   }
@@ -3049,7 +3243,7 @@ class _AuctionAppState extends State<_AuctionApp> {
           const SizedBox(width: 8),
           Expanded(child: Text(
             auction.winnerName != null
-                ? '${auction.winnerName} wygrywa ${PowerCards.byId(auction.cardId).name} za ${auction.winningBid}\$'
+                ? '${auction.winnerName} wygrywa ${cardById(auction.cardId).name} za ${auction.winningBid}\$'
                 : 'Brak ofert — karta nie została sprzedana.',
             style: const TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w800),
           )),
@@ -3089,7 +3283,8 @@ class _BidChip extends StatelessWidget {
 }
 
 class _StartAuctionSheet extends StatefulWidget {
-  const _StartAuctionSheet();
+  const _StartAuctionSheet({required this.edition});
+  final GameEdition edition;
 
   @override
   State<_StartAuctionSheet> createState() => _StartAuctionSheetState();
@@ -3116,7 +3311,7 @@ class _StartAuctionSheetState extends State<_StartAuctionSheet> {
             isExpanded: true,
             items: [
               const DropdownMenuItem(value: '__random__', child: Text('🎲 Losowa karta')),
-              ...PowerCards.all.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))),
+              ...cardsFor(widget.edition).map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis))),
             ],
             onChanged: (value) => setState(() => cardId = value),
             dropdownColor: const Color(0xFF220808),
@@ -3133,7 +3328,7 @@ class _StartAuctionSheetState extends State<_StartAuctionSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: cardId == null ? null : () => Navigator.pop(context, cardId == '__random__' ? (PowerCards.all.toList()..shuffle()).first.id : cardId),
+              onPressed: cardId == null ? null : () => Navigator.pop(context, cardId == '__random__' ? (cardsFor(widget.edition).toList()..shuffle()).first.id : cardId),
               icon: const Icon(Icons.gavel_rounded),
               label: const Text('Wystaw'),
               style: ElevatedButton.styleFrom(backgroundColor: kOneAccent, foregroundColor: Colors.white, textStyle: const TextStyle(fontWeight: FontWeight.w900)),
@@ -3262,7 +3457,17 @@ class _PlayersApp extends StatelessWidget {
                 if (p.statuses.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Wrap(spacing: 6, runSpacing: 6, children: [for (final s in p.statuses) if (!s.startsWith('na:') && !s.startsWith('checkresult:') && !s.startsWith('gossip') && !s.startsWith('sentence_round') && !s.startsWith('confess_round') && s != 'duel_used' && s != 'discard1' && s != 'plotka_shield' && !s.startsWith('identity:')) _statusChip(s)]),
+                    child: Wrap(spacing: 6, runSpacing: 6, children: [for (final s in p.statuses) if (!s.startsWith('na:') && !s.startsWith('checkresult:') && !s.startsWith('gossip') && !s.startsWith('sentence_round') && !s.startsWith('confess_round') && !s.startsWith('tax_round') && s != 'duel_used' && s != 'lastword_used' && s != 'discard1' && s != 'plotka_shield' && s != 'wokelast' && !s.startsWith('identity:')) _statusChip(s)]),
+                  ),
+                // Czujne Oko: for the host, a „watched" player shows whether they
+                // acted (woke) the previous night.
+                if (isHost && p.statuses.contains('watched'))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Czujne oko: ${p.statuses.contains('wokelast') ? 'budził się w nocy ✅' : 'nie budził się ❌'}',
+                      style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 12, fontWeight: FontWeight.w800),
+                    ),
                   ),
               ],
             ),
@@ -3309,6 +3514,7 @@ class _PlayersApp extends StatelessWidget {
       'pakt': ('Pakt krwi', Color(0xFF2F6B4F), Icons.favorite_rounded),
       'sentenced': ('Pod wyrokiem', Color(0xFF9A3412), Icons.gavel_rounded),
       'confessed': ('Na spowiedzi', Color(0xFF4B3621), Icons.menu_book_rounded),
+      'bankrupt': ('Bankructwo', Color(0xFFC9A227), Icons.money_off_rounded),
     };
     final spec = map[base];
     final label = spec?.$1 ?? base;

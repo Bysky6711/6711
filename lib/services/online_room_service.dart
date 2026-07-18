@@ -353,6 +353,17 @@ class OnlineRoomService {
               ? p.copyWith(statuses: p.statuses.where((s) => !s.startsWith('dowod:')).toList())
               : p,
       ];
+      // Podrzutek: past the 3-turn declaration window, an undeclared foundling is
+      // assigned a side 50/50 (the "host lottery", automated) so they count for a
+      // faction from then on. Irreversible, exactly like a manual declaration.
+      if (room.roundNumber > 3) {
+        players = [
+          for (final p in players)
+            (p.alive && p.medievalClass == MedievalClassType.podrzutek && p.podrzutekFaction == null)
+                ? p.copyWith(podrzutekFaction: math.Random().nextBool() ? MedievalFaction.korona : MedievalFaction.antagonisci)
+                : p,
+        ];
+      }
       final wplywy = <String, int>{...room.wplywy};
       for (final p in players) {
         if (p.alive && p.medievalClass == MedievalClassType.wrogPubliczny) {
@@ -392,6 +403,36 @@ class OnlineRoomService {
       };
       wplywy[playerId] = (wplywy[playerId] ?? 0) + amount;
       tx.update(doc, {'wplywy': wplywy});
+    });
+  }
+
+  /// Skarbnik Korony: moves [amount] Wpływów to [targetId] and −[amount] from the
+  /// Skarbnik, AT MOST ONCE per turn. The whole check-transfer-stamp runs in one
+  /// transaction, so a double-tap can't transfer twice (the second read sees the
+  /// `tax_round` stamp and bails).
+  Future<void> treasuryTransfer({
+    required String code,
+    required String skarbnikId,
+    required String targetId,
+    required int amount,
+    required int roundNumber,
+  }) async {
+    final doc = _roomDoc(code);
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(doc);
+      if (!snap.exists) return;
+      final room = GameRoom.fromMap(snap.data()!);
+      final sk = room.players.where((p) => p.id == skarbnikId);
+      if (sk.isNotEmpty && sk.first.statuses.contains('tax_round:$roundNumber')) return; // already used this turn
+      final wplywy = <String, int>{...room.wplywy};
+      wplywy[targetId] = (wplywy[targetId] ?? 0) + amount;
+      wplywy[skarbnikId] = (wplywy[skarbnikId] ?? 0) - amount;
+      tx.update(doc, {
+        'wplywy': wplywy,
+        'players': room.players
+            .map((p) => p.id == skarbnikId ? p.copyWith(statuses: _withStatus(p.statuses, 'tax_round:$roundNumber')).toMap() : p.toMap())
+            .toList(),
+      });
     });
   }
 
@@ -740,7 +781,7 @@ class OnlineRoomService {
   }
 
   /// One-phase statuses that expire at the start of the next phase change.
-  static const _transient = {'protected', 'blocked', 'silenced', 'watched', 'onballot', 'intimidated', 'trading', 'doublevote', 'sentenced', 'confessed'};
+  static const _transient = {'protected', 'blocked', 'silenced', 'watched', 'onballot', 'intimidated', 'trading', 'doublevote', 'sentenced', 'confessed', 'bankrupt'};
 
   List<GamePlayer> _expireTransient(List<GamePlayer> players) => [
         for (final p in players)
@@ -798,6 +839,12 @@ class OnlineRoomService {
   List<GamePlayer> _resolveNightActions(List<GamePlayer> players) {
     final heals = <String>{};
     final kills = <String>{};
+    // Who acted at night (any `na:` marker) — recorded as `wokelast` so the host
+    // can answer Czujne Oko ("czy ten gracz budził się poprzedniej nocy?").
+    final woke = <String>{
+      for (final p in players)
+        if (p.statuses.any((s) => s.startsWith('na:'))) p.name,
+    };
     for (final p in players) {
       for (final s in p.statuses) {
         if (s.startsWith('na:heal:')) heals.add(s.substring(8));
@@ -841,10 +888,15 @@ class OnlineRoomService {
           _applyMedievalNight(p, kompTargets.contains(p.name), dowodByTarget[p.name] ?? const []),
       ];
     }
-    // 4) clear the one-shot night-action markers
+    // 4) clear the one-shot night-action markers, and refresh `wokelast` so it
+    //    reflects EXACTLY who acted this night (for Czujne Oko).
     result = [
       for (final p in result)
-        p.copyWith(statuses: p.statuses.where((s) => !s.startsWith('na:')).toList()),
+        p.copyWith(statuses: [
+          for (final s in p.statuses)
+            if (!s.startsWith('na:') && s != 'wokelast') s,
+          if (woke.contains(p.name)) 'wokelast',
+        ]),
     ];
     return result;
   }
@@ -917,6 +969,30 @@ class OnlineRoomService {
         'phase': GamePhase.setup.name,
       });
     });
+  }
+
+  /// Deletes a room and its subcollections. Called when the host leaves for good
+  /// so finished rooms don't pile up in Firestore forever. Best-effort: the
+  /// client can't recursively delete, so we clear the known subcollections
+  /// (messages/actions/hands/votes/auction/state and tasks + its submissions)
+  /// then remove the room document itself.
+  Future<void> deleteRoom(String code) async {
+    final room = _roomDoc(code);
+    for (final sub in const ['messages', 'actions', 'hands', 'votes', 'auction', 'state']) {
+      final snap = await room.collection(sub).get();
+      for (final d in snap.docs) {
+        await d.reference.delete();
+      }
+    }
+    final tasks = await room.collection('tasks').get();
+    for (final t in tasks.docs) {
+      final subs = await t.reference.collection('submissions').get();
+      for (final s in subs.docs) {
+        await s.reference.delete();
+      }
+      await t.reference.delete();
+    }
+    await room.delete();
   }
 
   /// Host toggles whether a player is still alive (drives the roster + voting).
@@ -1296,36 +1372,54 @@ class OnlineRoomService {
       }
       final bids = Map<String, int>.from(auction.bids);
       bids[playerId] = amount;
-      tx.update(aRef, {'bids': bids});
+      // Reset the countdown: the clock starts on the first bid and every new bid
+      // pushes the deadline out again (like a live auction).
+      tx.update(aRef, {
+        'bids': bids,
+        'endsAt': DateTime.now().millisecondsSinceEpoch + kAuctionCountdownSeconds * 1000,
+      });
     });
   }
 
+  /// Closes the auction and pays out. The winner is decided INSIDE a transaction
+  /// off the freshest bids, so a last-moment bid can't be missed (the old bug:
+  /// the final bid showed up but an earlier bidder won). The claim also flips
+  /// open→closed atomically, so a double trigger (host tap + auto-timer) can't
+  /// pay out twice.
+  ///
+  /// [auto] = true is the countdown-driven close: it backs off if a fresh bid
+  /// has reset the clock into the future, so the last bidder always wins.
   Future<void> closeAuction({
     required String code,
     required Map<String, String> nameById,
+    bool auto = false,
   }) async {
-    final snap = await _auctionDoc(code).get();
-    if (!snap.exists) return;
-    final auction = Auction.fromMap(snap.data()!);
-    final winnerId = auction.highBidderId;
-    final bid = auction.highBid;
-    if (winnerId != null && bid > 0) {
-      await awardMoney(code: code, playerId: winnerId, amount: -bid);
-      await assignCard(code: code, playerId: winnerId, cardId: auction.cardId);
-      await _auctionDoc(code).update({
+    final claim = await _db.runTransaction<Map<String, dynamic>?>((tx) async {
+      final ref = _auctionDoc(code);
+      final snap = await tx.get(ref);
+      if (!snap.exists) return null;
+      final auction = Auction.fromMap(snap.data()!);
+      if (!auction.isOpen) return null; // already closed / claimed
+      // Auto-close only once the clock has truly elapsed. If a last-moment bid
+      // pushed the deadline out, bail and let that bid stand.
+      if (auto && auction.endsAt != null && DateTime.now().millisecondsSinceEpoch < auction.endsAt!) {
+        return null;
+      }
+      final winnerId = auction.highBidderId;
+      final bid = auction.highBid;
+      final hasWinner = winnerId != null && bid > 0;
+      tx.update(ref, {
         'state': AuctionState.closed.name,
-        'winnerId': winnerId,
-        'winnerName': nameById[winnerId] ?? 'Gracz',
-        'winningBid': bid,
+        'winnerId': hasWinner ? winnerId : null,
+        'winnerName': hasWinner ? (nameById[winnerId] ?? 'Gracz') : null,
+        'winningBid': hasWinner ? bid : 0,
+        'endsAt': null,
       });
-    } else {
-      await _auctionDoc(code).update({
-        'state': AuctionState.closed.name,
-        'winnerId': null,
-        'winnerName': null,
-        'winningBid': 0,
-      });
-    }
+      return hasWinner ? <String, dynamic>{'winnerId': winnerId, 'bid': bid, 'cardId': auction.cardId} : <String, dynamic>{};
+    });
+    if (claim == null || claim.isEmpty) return; // nothing claimed, or no winner
+    await awardMoney(code: code, playerId: claim['winnerId'] as String, amount: -(claim['bid'] as int));
+    await assignCard(code: code, playerId: claim['winnerId'] as String, cardId: claim['cardId'] as String);
   }
 
   Future<void> clearAuction(String code) => _auctionDoc(code).delete();
@@ -1362,7 +1456,9 @@ class OnlineRoomService {
     required String forcedName,
     required String voteForName,
   }) async {
-    if (forcedName.isEmpty || voteForName.isEmpty) return;
+    // An empty [voteForName] is a forced ABSTAIN (used when Ślubowanie copies a
+    // source who abstained). Only a missing forced player is a no-op.
+    if (forcedName.isEmpty) return;
     // Act ONLY on an existing, OPEN vote. Never merge-create the vote doc here:
     // a merge-set on a missing doc produced a `votes/current` with no `state`,
     // which reads back as VoteState.closed — a phantom, already-finished vote
@@ -1430,7 +1526,40 @@ class OnlineRoomService {
     }
 
     // Decisive result -> eliminate. A tie in the runoff or no votes -> nobody dies.
-    final targetName = top.length == 1 ? top.first : null;
+    var targetName = top.length == 1 ? top.first : null;
+
+    // Wróg Publiczny „Ostatnie słowo": if the person about to be exiled is an
+    // alive Wróg Publiczny who hasn't used it yet, the exile is redirected onto a
+    // RANDOM voter who voted for them. The WP survives; the ability is spent.
+    String? lastWordUser; // the WP to flag as having used the ability
+    if (targetName != null && room0 != null) {
+      final tp = room0.players.where((p) => p.name == targetName).toList();
+      if (tp.isNotEmpty &&
+          tp.first.alive &&
+          tp.first.medievalClass == MedievalClassType.wrogPubliczny &&
+          !tp.first.statuses.contains('lastword_used')) {
+        // Identity swap (Skradziona Tożsamość) can reroute votes; honour it.
+        final remap = <String, String>{};
+        for (final p in room0.players) {
+          final tag = p.statuses.firstWhere((s) => s.startsWith('identity:'), orElse: () => '');
+          if (tag.isNotEmpty) {
+            final o = tag.substring(9);
+            remap[o] = p.name;
+            remap[p.name] = o;
+          }
+        }
+        final byId = {for (final p in room0.players) p.id: p};
+        final voters = <String>[
+          for (final e in vote.ballots.entries)
+            if ((remap[e.value] ?? e.value) == targetName && byId[e.key] != null && byId[e.key]!.alive && byId[e.key]!.name != targetName)
+              byId[e.key]!.name,
+        ];
+        if (voters.isNotEmpty) {
+          lastWordUser = targetName;
+          targetName = voters[math.Random().nextInt(voters.length)];
+        }
+      }
+    }
 
     // Trubadur reward hook: if the exiled player carried this cycle's gossip
     // marker, the Trubadur that gossiped them earns +15 Wpływów.
@@ -1444,13 +1573,19 @@ class OnlineRoomService {
     }
 
     if (targetName != null && targetName.trim().isNotEmpty) {
+      final eliminated = targetName;
       await _db.runTransaction((tx) async {
         final rSnap = await tx.get(_roomDoc(code));
         if (!rSnap.exists) return;
         final room = GameRoom.fromMap(rSnap.data()!);
         var players = [
           for (final p in room.players)
-            p.name == targetName ? p.copyWith(alive: false) : p,
+            if (p.name == eliminated)
+              p.copyWith(alive: false)
+            else if (lastWordUser != null && p.name == lastWordUser)
+              p.copyWith(statuses: _withStatus(p.statuses, 'lastword_used'))
+            else
+              p,
         ];
         players = _resolveBonds(players);
         tx.update(_roomDoc(code), {

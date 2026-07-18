@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -15,6 +16,17 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // Sign in anonymously so the (hardened) Firestore rules can require an
+  // authenticated user. Non-fatal if it fails — but the tightened rules then
+  // reject writes, so make sure "Anonymous" sign-in is enabled in the Firebase
+  // console (Authentication → Sign-in method).
+  try {
+    if (FirebaseAuth.instance.currentUser == null) {
+      await FirebaseAuth.instance.signInAnonymously();
+    }
+  } catch (e) {
+    debugPrint('Anonimowe logowanie nie powiodło się: $e');
+  }
   // Auto-detect long-polling: fast streaming transport on normal networks,
   // automatic fallback to long-polling behind proxies/firewalls that break it.
   // Must be set before any Firestore use.
