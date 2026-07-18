@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "868091531285",
+    "firebase_url": "https://mafia-6711-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "mafia-6711",
+    "storage_bucket": "mafia-6711.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:868091531285:android:ae474224eb9aa1bdef3e1c",
+        "android_client_info": {
+          "package_name": "com.example.mafia"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX8fy2xZcX0HhqIBCyMoku_Vzhn-9vNUg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

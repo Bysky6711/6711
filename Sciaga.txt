@@ -1,0 +1,254 @@
+ŚCIĄGAWKA — UPDATE GRY MAFIA + GITHUB PAGES
+
+WAŻNE:
+Kod gry edytujesz tylko w folderze:
+C:\VScode\projekty\mafia
+
+Deploy strony robisz przez osobny folder:
+C:\VScode\mafia_pages
+
+NIE rób już git checkout gh-pages w folderze C:\VScode\projekty\mafia.
+Dzięki temu nie wyczyścisz sobie kodu gry.
+
+==================================================
+1. PRACA NAD KODEM GRY
+==================================================
+
+Wejdź do folderu projektu:
+
+cd C:\VScode\projekty\mafia
+
+Upewnij się, że jesteś na main:
+
+git checkout main
+
+Sprawdź, czy jesteś w projekcie Flutter:
+
+dir pubspec.yaml
+dir lib
+
+Jeśli widzisz pubspec.yaml i lib, jest dobrze.
+
+Uruchom grę lokalnie:
+
+flutter run -d edge
+
+Po zmianach zapisz kod na GitHub:
+
+git add .
+git commit -m "Opis zmian"
+git push origin main
+
+Jeśli pokazuje "nothing to commit", to nie trzeba robić commit.
+
+==================================================
+2. BUILD STRONY WEB
+==================================================
+
+Będąc w:
+
+C:\VScode\projekty\mafia
+
+zrób build:
+
+flutter clean
+flutter pub get
+flutter build web --release --base-href /6711/
+
+Po buildzie gotowa strona jest tutaj:
+
+C:\VScode\projekty\mafia\build\web
+
+==================================================
+3. KOPIA BUILD DO BEZPIECZNEGO FOLDERU
+==================================================
+
+Wklej:
+
+Remove-Item -Recurse -Force C:\VScode\web_build_temp -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force C:\VScode\web_build_temp
+Copy-Item -Recurse -Force .\build\web\* C:\VScode\web_build_temp\
+
+To kopiuje gotową stronę do:
+
+C:\VScode\web_build_temp
+
+==================================================
+4. FOLDER DO DEPLOYA GH-PAGES
+==================================================
+
+Jeśli folder deploya jeszcze nie istnieje albo chcesz go odświeżyć:
+
+Remove-Item -Recurse -Force C:\VScode\mafia_pages -ErrorAction SilentlyContinue
+git worktree add -B gh-pages C:\VScode\mafia_pages main
+
+Potem przejdź do folderu deploya:
+
+cd C:\VScode\mafia_pages
+
+==================================================
+5. WYCZYSZCZENIE GH-PAGES
+==================================================
+
+Będąc w:
+
+C:\VScode\mafia_pages
+
+wklej:
+
+git rm -rf .
+Get-ChildItem -Force | Where-Object { $_.Name -ne ".git" } | Remove-Item -Recurse -Force
+
+To czyści tylko folder deploya, NIE folder z kodem gry.
+
+==================================================
+6. WKLEJENIE GOTOWEJ STRONY
+==================================================
+
+Będąc dalej w:
+
+C:\VScode\mafia_pages
+
+wklej:
+
+Copy-Item -Recurse -Force C:\VScode\web_build_temp\* .
+
+Po tym w folderze C:\VScode\mafia_pages powinny być pliki typu:
+
+index.html
+main.dart.js
+flutter.js
+flutter_bootstrap.js
+assets
+canvaskit
+manifest.json
+
+NIE powinno być:
+
+lib
+android
+ios
+pubspec.yaml
+
+==================================================
+7. WYSŁANIE STRONY NA GITHUB PAGES
+==================================================
+
+W folderze:
+
+C:\VScode\mafia_pages
+
+wklej:
+
+git add .
+git commit -m "Deploy web"
+git push origin gh-pages --force
+
+Jeśli przy commit pokaże "nothing to commit", wpisz tylko:
+
+git push origin gh-pages --force
+
+==================================================
+8. POWRÓT DO KODU GRY
+==================================================
+
+Po deployu wróć do folderu gry:
+
+cd C:\VScode\projekty\mafia
+git checkout main
+
+Sprawdź:
+
+dir pubspec.yaml
+dir lib
+
+Jeśli widzisz pubspec.yaml i lib, jesteś z powrotem w kodzie gry.
+
+==================================================
+9. LINK DO STRONY
+==================================================
+
+Po 1–3 minutach wejdź:
+
+https://bysky6711.github.io/6711/
+
+Jeśli strona się nie odświeża:
+
+CTRL + F5
+
+albo otwórz w trybie incognito.
+
+==================================================
+10. USTAWIENIA GITHUB PAGES
+==================================================
+
+Na GitHub:
+
+Settings → Pages
+
+Ustaw:
+
+Source:
+Deploy from a branch
+
+Branch:
+gh-pages
+
+Folder:
+/root
+
+==================================================
+11. NAJWAŻNIEJSZE ZASADY
+==================================================
+
+1. Kod gry robisz tylko tutaj:
+C:\VScode\projekty\mafia
+
+2. Deploy strony robisz tylko tutaj:
+C:\VScode\mafia_pages
+
+3. Nie używaj git checkout gh-pages w folderze gry.
+
+4. Na main ma być projekt Flutter:
+lib
+assets
+android
+ios
+pubspec.yaml
+
+5. Na gh-pages mają być tylko pliki strony:
+index.html
+main.dart.js
+flutter.js
+assets
+canvaskit
+manifest.json
+
+==================================================
+12. SZYBKI UPDATE — PEŁNY ZESTAW KOMEND
+==================================================
+
+cd C:\VScode\projekty\mafia
+git checkout main
+flutter clean
+flutter pub get
+flutter build web --release --base-href /6711/
+
+Remove-Item -Recurse -Force C:\VScode\web_build_temp -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force C:\VScode\web_build_temp
+Copy-Item -Recurse -Force .\build\web\* C:\VScode\web_build_temp\
+
+Remove-Item -Recurse -Force C:\VScode\mafia_pages -ErrorAction SilentlyContinue
+git worktree add -B gh-pages C:\VScode\mafia_pages main
+
+cd C:\VScode\mafia_pages
+git rm -rf .
+Get-ChildItem -Force | Where-Object { $_.Name -ne ".git" } | Remove-Item -Recurse -Force
+Copy-Item -Recurse -Force C:\VScode\web_build_temp\* .
+
+git add .
+git commit -m "Deploy web"
+git push origin gh-pages --force
+
+cd C:\VScode\projekty\mafia
+git checkout main

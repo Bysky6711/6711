@@ -1,0 +1,26 @@
+rules_version = '2';
+
+// ⚠️ DEVELOPMENT rules for the Mafia party game.
+//
+// The app currently has NO authentication — players are identified only by a
+// generated id held on their device — so these rules allow open read/write to
+// room documents. That is fine for playing with friends, but anyone who knows
+// (or guesses) a 5-char room code could read/write it.
+//
+// To harden for real production:
+//   1. Add Firebase Auth (anonymous sign-in is enough) in the app.
+//   2. Require `request.auth != null` below.
+//   3. Optionally validate field shapes and lock the `players`/`status`
+//      transitions to the host uid.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{roomCode} {
+      allow read, write: if true;
+
+      // messages/ and actions/ subcollections
+      match /{document=**} {
+        allow read, write: if true;
+      }
+    }
+  }
+}
