@@ -280,9 +280,9 @@ class PowerCards {
     ),
     PowerCardDefinition(
       id: 'deal',
-      name: 'Deal',
+      name: 'Shalom',
       shortDescription: 'Za zgodą gracza wymieńcie się kartami.',
-      effectDescription: 'Możesz za zgodą innego gracza wymienić się z nim dowolną liczbą kart. Wymiana wymaga akceptacji obu stron.',
+      effectDescription: 'Ta karta była mi obiecana 20tys. lat temu.',
       timing: PowerCardTiming.day,
       targetMode: PowerCardTargetMode.onePlayer,
       icon: Icons.handshake_rounded,
