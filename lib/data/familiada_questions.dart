@@ -218,12 +218,28 @@ const List<FamiliadaSurvey> kFamiliadaSurveys = [
     FamiliadaAnswer('Grasz w piłkę', 11),
     FamiliadaAnswer('Zbierasz muszelki', 9),
   ]),
-  FamiliadaSurvey('Co wypije z chęcią Rafał? ', [
+ FamiliadaSurvey('Co wypije z chęcią Rafał? ', [
     FamiliadaAnswer('Whisky', 30),
     FamiliadaAnswer('Piwo', 24),
-    FamiliadaAnswer('Kawe', 16),
+    FamiliadaAnswer('Drink', 16),
     FamiliadaAnswer('Wino', 14),
-    FamiliadaAnswer('Drink', 10),
+    FamiliadaAnswer('Kawa', 10),
     FamiliadaAnswer('Sok', 6),
   ]),
+  FamiliadaSurvey('Za co podziwiam austryjackiego malarza? ', [
+    FamiliadaAnswer('Przemowy', 30),
+    FamiliadaAnswer('Wytrzymałość', 24),
+    FamiliadaAnswer('Najpopularniejsze obozy koncentracji dla młodzierzy i nie tylko', 16),
+    FamiliadaAnswer('Stworzenie najwydajniejszych pieców przemysłowych', 14),
+    FamiliadaAnswer('Nietuźnikowy wygląd', 10),
+    FamiliadaAnswer('za lufe i wafe', 6),
+  ]),
+  FamiliadaSurvey('Najmocniejsze piwa w Polsce ', [
+    FamiliadaAnswer('Karpackie', 30),
+    FamiliadaAnswer('DEMON', 24),
+    FamiliadaAnswer('Imperator', 16),
+    FamiliadaAnswer('Romper Extreme', 14),
+    FamiliadaAnswer('Halne mega mocne', 10),
+  ]),
 ];
+
